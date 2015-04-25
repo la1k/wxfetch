@@ -1,18 +1,31 @@
-#include "tracker.h"
 #include <iostream>
+#include <vector>
 using namespace std;
 
 
 #if 1
 #include <gnuradio/top_block.h>
-int main(){
-	//gnuradio test
+#include <osmosdr/source.h>
+#include <gnuradio/blocks/wavfile_sink.h>
+#include <gnuradio/blocks/wavfile_source.h>
+#include <gnuradio/filter/firdes.h>
+#include <gnuradio/filter/freq_xlating_fir_filter_ccf.h>
+#include <gnuradio/filter/freq_xlating_fir_filter_fcf.h>
+#include <gnuradio/analog/quadrature_demod_cf.h>
+#include <gnuradio/filter/fir_filter_fff.h>
+#include <gnuradio/filter/iir_filter_ffd.h>
+#include <gnuradio/filter/rational_resampler_base_fff.h>
+#include <gnuradio/blocks/multiply_const_ff.h>
+#include <string>
+
+int main(int argc, char*argv[]){
+	//based on flow graph found on http://websterling.com/tsro/apt/
 	gr::top_block_sptr tb = gr::make_top_block("test");
 
-	//based on flow graph found on http://websterling.com/tsro/apt/
-
 	//source
-	osmosdr::source::sptr src = osmosdr::source::make("");
+	string dev_str = "rtl=0,rtl_xtal=0,tuner_xtal=0,buffers=32,buflen=256kB,direct_samp=2,offset_tune=0";
+	osmosdr::source::sptr src = osmosdr::source::make(dev_str);
+	//gr::blocks::wavfile_source::sptr src = gr::blocks::wavfile_source::make(argv[1]);
 
 	//sink
 	gr::blocks::wavfile_sink::sptr sink = gr::blocks::wavfile_sink::make("/dev/null", 1, 11025, 16);
@@ -22,29 +35,33 @@ int main(){
 	////////////////////////////
 	
 	//frequency xlating FIR filter
-	vector<float> xlate_filter_taps = gr::filter::firdes.low_pass();
+	double sampling_freq = 96000;
+	double cutoff_freq = 40000;
+	double transition_width = 20000.0;
+	vector<float> xlate_filter_taps = gr::filter::firdes::low_pass(1.0f, sampling_freq, cutoff_freq, transition_width, gr::filter::firdes::WIN_HAMMING);
+	//gr::filter::freq_xlating_fir_filter_fcf::sptr xlate_filter = gr::filter::freq_xlating_fir_filter_fcf::make(1, xlate_filter_taps, 0, 96000);
 	gr::filter::freq_xlating_fir_filter_ccf::sptr xlate_filter = gr::filter::freq_xlating_fir_filter_ccf::make(1, xlate_filter_taps, 0, 96000);
 
 	//WBFM receive (from gr-analog/python/analog/wfm_rcv.py)
 	double quad_rate = 96000;
-	int audio_dec = 5;
+	int audio_decimation = 5;
 	double volume = 20.0;
 	double max_dev = 75e3;
 	double fm_demod_gain = quad_rate/(2.0*M_PI*max_dev);
-	double audio_rate = quad_rate/(1.0*audio_dec);
+	double audio_rate = quad_rate/(1.0*audio_decimation);
 	gr::analog::quadrature_demod_cf::sptr fm_demod = gr::analog::quadrature_demod_cf::make(fm_demod_gain);
-	vector<float> audio_coeffs = gr::filter::firdes.low_pass(1.0, quad_rate, audio_rate/2 - audio_rate/32, gr::filter::WIN_HAMMING);
+	vector<float> audio_coeffs = gr::filter::firdes::low_pass(1.0, quad_rate, audio_rate/2 - audio_rate/32, audio_rate/32, gr::filter::firdes::WIN_HAMMING);
 	gr::filter::fir_filter_fff::sptr audio_filter = gr::filter::fir_filter_fff::make(audio_decimation, audio_coeffs);
 
 	//fm_deemph (from gr-analog/python/analog/fm_emph.py)
 	float tau = 75e-06;
-	vector<float> btaps;
+	vector<double> btaps;
 	float w_p = 1.0f/tau;
 	float w_pp = tan(w_p/(audio_rate*2));
 	btaps.push_back(w_pp/(1 + w_pp));
 	btaps.push_back(btaps[0]);
 	
-	vector<float> ataps;
+	vector<double> ataps;
 	ataps.push_back(1);
 	ataps.push_back((w_pp - 1)/(w_pp + 1));
 	gr::filter::iir_filter_ffd::sptr fm_deemph = gr::filter::iir_filter_ffd::make(btaps, ataps);
@@ -65,11 +82,16 @@ int main(){
 	tb->connect(resamp_11025k, 0, mult_const, 0);
 	tb->connect(mult_const, 0, sink, 0);
 	
-	
+	tb->run();
+
+	//ok, jeg trenger egentlig ikke å bruke wait eller run i det hele tatt: kjør bare start, og gjør andre ting i mellomtiden... gnuradio kjører i bakgrunnen lell. 
+	//Opprett en egen klasse som innkapsler alt. Ha medlemsfunksjoner for å sette relevante frekvenser og dritt, med lock underveis.
+	//Trenger bare å vite hva jeg skal gjøre med utputten. 
 		
 }
 #else
 
+#include "tracker.h"
 
 
 void wxsat_prepare(int *num_satellites, struct orbit*** satellites){
