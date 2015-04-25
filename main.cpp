@@ -1,17 +1,102 @@
-
-extern "C"{
-#include <libpredict/orbit.h>
-}
+#include "tracker.h"
 #include <iostream>
 using namespace std;
 
-int main(){
-	const char *tle[2] = {
-	"1 30000U 13010D   13 56.53554398  .00000000  00000-0 -11606-4 0    18",
-	"2 30000  98.5602 246.6937 0004889 347.4954 227.2507 14.33925378    18"};
 
-	struct orbit iss;
-	orbit_init(&iss, tle);
+#if 1
+#include <gnuradio/top_block.h>
+int main(){
+	//gnuradio test
+	gr::top_block_sptr tb = gr::make_top_block("test");
+
+	//based on flow graph found on http://websterling.com/tsro/apt/
+
+	//source
+	osmosdr::source::sptr src = osmosdr::source::make("");
+
+	//sink
+	gr::blocks::wavfile_sink::sptr sink = gr::blocks::wavfile_sink::make("/dev/null", 1, 11025, 16);
+	
+	////////////////////////////
+	// PRE-PROCESSING FILTERS //
+	////////////////////////////
+	
+	//frequency xlating FIR filter
+	vector<float> xlate_filter_taps = gr::filter::firdes.low_pass();
+	gr::filter::freq_xlating_fir_filter_ccf::sptr xlate_filter = gr::filter::freq_xlating_fir_filter_ccf::make(1, xlate_filter_taps, 0, 96000);
+
+	//WBFM receive (from gr-analog/python/analog/wfm_rcv.py)
+	double quad_rate = 96000;
+	int audio_dec = 5;
+	double volume = 20.0;
+	double max_dev = 75e3;
+	double fm_demod_gain = quad_rate/(2.0*M_PI*max_dev);
+	double audio_rate = quad_rate/(1.0*audio_dec);
+	gr::analog::quadrature_demod_cf::sptr fm_demod = gr::analog::quadrature_demod_cf::make(fm_demod_gain);
+	vector<float> audio_coeffs = gr::filter::firdes.low_pass(1.0, quad_rate, audio_rate/2 - audio_rate/32, gr::filter::WIN_HAMMING);
+	gr::filter::fir_filter_fff::sptr audio_filter = gr::filter::fir_filter_fff::make(audio_decimation, audio_coeffs);
+
+	//fm_deemph (from gr-analog/python/analog/fm_emph.py)
+	float tau = 75e-06;
+	vector<float> btaps;
+	float w_p = 1.0f/tau;
+	float w_pp = tan(w_p/(audio_rate*2));
+	btaps.push_back(w_pp/(1 + w_pp));
+	btaps.push_back(btaps[0]);
+	
+	vector<float> ataps;
+	ataps.push_back(1);
+	ataps.push_back((w_pp - 1)/(w_pp + 1));
+	gr::filter::iir_filter_ffd::sptr fm_deemph = gr::filter::iir_filter_ffd::make(btaps, ataps);
+
+	//resamplers before audio output suitable for APTDEC
+	gr::filter::rational_resampler_base_fff::sptr resamp_441khz = gr::filter::rational_resampler_base_fff::make(441, 192, vector<float>());
+	gr::filter::rational_resampler_base_fff::sptr resamp_11025k = gr::filter::rational_resampler_base_fff::make(1, 4, vector<float>());
+	gr::blocks::multiply_const_ff::sptr mult_const = gr::blocks::multiply_const_ff::make(6.5);
+	
+
+	//connect blocks
+	tb->connect(src, 0, xlate_filter, 0);
+	tb->connect(xlate_filter, 0, fm_demod, 0);
+	tb->connect(fm_demod, 0, audio_filter, 0);
+	tb->connect(audio_filter, 0, fm_deemph, 0);
+	tb->connect(fm_deemph, 0, resamp_441khz, 0);
+	tb->connect(resamp_441khz, 0, resamp_11025k, 0);
+	tb->connect(resamp_11025k, 0, mult_const, 0);
+	tb->connect(mult_const, 0, sink, 0);
+	
+	
+		
+}
+#else
+
+
+
+void wxsat_prepare(int *num_satellites, struct orbit*** satellites){
+	const char *tle_noaa15[2] = {"1 25338U 98030A   15111.44744815  .00000353  00000-0  16813-3 0  9990",
+	"2 25338  98.7719 110.0498 0010142 339.5996  20.4777 14.25603267880750"};
+	const char *tle_noaa18[2] = {"1 28654U 05018A   15111.52351205  .00000264  00000-0  16910-3 0  9993",
+	"2 28654  99.1819 102.7929 0015245 117.6325 242.6395 14.12181499511071"};
+	const char *tle_noaa19[2] = {"1 33591U 09005A   15111.47492914  .00000377  00000-0  23086-3 0  9993",
+	"2 33591  98.9850  61.2335 0013646 334.4839  25.5657 14.11916313319481"};
+
+	*num_satellites = 3;
+	*satellites = new struct orbit*[*num_satellites];
+	(*satellites)[0] = new struct orbit;
+	(*satellites)[1] = new struct orbit;
+	(*satellites)[2] = new struct orbit;
+	orbit_init((*satellites)[0], tle_noaa15);
+	orbit_init((*satellites)[1], tle_noaa18);
+	orbit_init((*satellites)[2], tle_noaa19);
+}
+
+
+
+int main(){
+	//satellites
+	int num_satellites = 0;
+	struct orbit **satellites;
+	wxsat_prepare(&num_satellites, &satellites);
 	
 	//QTH
 	geodetic_t obs_geodetic;
@@ -20,25 +105,35 @@ int main(){
 	obs_geodetic.alt = 25.0/1000.0;
 	obs_geodetic.theta = 0;
 
-	for (;;) {
-		//Get current time:
-		double time = CurrentDaynum();
-		double jul_utc = time + 2444238.5;
 
-		orbit_predict(&iss, time);
+	double time_step = 1.0f/(24.0f*60);
+	double curr_time = 0;
+	const double DAYS_TO_SECONDS_FACTOR = 24*60*60;
 
-		vector_t obs_set;
-		Calculate_Obs(jul_utc, iss.position, iss.velocity, &obs_geodetic, &obs_set);
-		cout << jul_utc << " " << iss.position[0] << " " << iss.position[1] << " " << iss.position[2] << " " << iss.velocity[0] << " " << iss.velocity[1] << " " << iss.velocity[2] << " " << obs_geodetic.lat << " " << obs_geodetic.lon << " " << obs_geodetic.alt << endl;
+	while (true){
+		//estimate start and stop time of next satellite pass
+		curr_time = CurrentDaynum();
+		double time_of_arrival = 0;
+		int sat_ind = 0;
+		double time_of_departure = 0;
+		sattrack_get_best_elevation(curr_time, 1, time_step, &obs_geodetic, num_satellites, satellites, &sat_ind, &time_of_arrival, &time_of_departure);
 
-		cout << Degrees(obs_set.x) << " " << Degrees(obs_set.y) << endl;	
+		double time_until_start_sec = (time_of_arrival - curr_time)*DAYS_TO_SECONDS_FACTOR;
+		double duration_secs = (time_of_departure - time_of_arrival)*DAYS_TO_SECONDS_FACTOR;
+		fprintf(stderr, "Calculated next satellite pass: cat %d in %f hours, lasting %f minutes.\n", satellites[sat_ind]->catnum, time_until_start_sec/(60*60), duration_secs/60);
 
-		//printf("lat: %f, lon: %f, alt: %f, ", Degrees(iss.latitude), Degrees(iss.longitude), iss.altitude);
-		//printf("azi: %f, ele: %f, range: %f, range rate: %f\n ", Degrees(obs_set.x), Degrees(obs_set.y), obs_set.z, obs_set.w);
 
-		//Sleep
-		usleep(100000);
+		//sleep until approx. start
+		sleep(time_until_start_sec);
+
+		//satellite is here!
+		
+		sleep(duration_secs);
+
+		//sleep some extra time just to shake off the last satellite. 
+		sleep(60);
 	}
-
+	
 	return 0;
 }
+#endif
