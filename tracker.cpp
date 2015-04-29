@@ -57,16 +57,16 @@ void sattrack_get_best_elevation(double start_time, double time_offset, double t
 	}
 }
 
-double sattrack_get_khz_frequency(double time, const orbit *satellite){
-	return (133*1000);
+double sattrack_get_doppler_shift(double time, orbit *satellite){
+	return 1.0;
 }
 
 void sattrack_get_aziele(double time, geodetic_t *qth_coord, orbit *satellite, double *azimuth, double *elevation){
 	double jul_utc = time + 2444238.5;
 	vector_t obs_set;
 	Calculate_Obs(jul_utc, satellite->position, satellite->velocity, qth_coord, &obs_set);
-	*azimuth = obs_set.x;
-	*elevation = obs_set.y;
+	*azimuth = Degrees(obs_set.x);
+	*elevation = Degrees(obs_set.y);
 }
 	
 
