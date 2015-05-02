@@ -22,7 +22,7 @@ void receiver_initialize(receiver_t *rec){
 	rec->src = osmosdr::source::make(dev_str);
 
 	//sink
-	gr::blocks::wavfile_sink::sptr sink = gr::blocks::wavfile_sink::make("/dev/null", 1, 11025, 16);
+	rec->sink = gr::blocks::wavfile_sink::make("/dev/null", 1, 11025, 16);
 	
 	////////////////////////////
 	// PRE-PROCESSING FILTERS //
@@ -33,7 +33,6 @@ void receiver_initialize(receiver_t *rec){
 	double cutoff_freq = 40000;
 	double transition_width = 20000.0;
 	vector<float> xlate_filter_taps = gr::filter::firdes::low_pass(1.0f, sampling_freq, cutoff_freq, transition_width, gr::filter::firdes::WIN_HAMMING);
-	//gr::filter::freq_xlating_fir_filter_fcf::sptr xlate_filter = gr::filter::freq_xlating_fir_filter_fcf::make(1, xlate_filter_taps, 0, 96000);
 	gr::filter::freq_xlating_fir_filter_ccf::sptr xlate_filter = gr::filter::freq_xlating_fir_filter_ccf::make(1, xlate_filter_taps, 0, 96000);
 
 	//WBFM receive (from gr-analog/python/analog/wfm_rcv.py)
@@ -64,7 +63,6 @@ void receiver_initialize(receiver_t *rec){
 	gr::filter::rational_resampler_base_fff::sptr resamp_441khz = gr::filter::rational_resampler_base_fff::make(441, 192, vector<float>());
 	gr::filter::rational_resampler_base_fff::sptr resamp_11025k = gr::filter::rational_resampler_base_fff::make(1, 4, vector<float>());
 	gr::blocks::multiply_const_ff::sptr mult_const = gr::blocks::multiply_const_ff::make(6.5);
-	
 
 	//connect blocks
 	rec->top_block->connect(rec->src, 0, xlate_filter, 0);
@@ -74,7 +72,7 @@ void receiver_initialize(receiver_t *rec){
 	rec->top_block->connect(fm_deemph, 0, resamp_441khz, 0);
 	rec->top_block->connect(resamp_441khz, 0, resamp_11025k, 0);
 	rec->top_block->connect(resamp_11025k, 0, mult_const, 0);
-	rec->top_block->connect(mult_const, 0, sink, 0);
+	rec->top_block->connect(mult_const, 0, rec->sink, 0);
 	
 }
 
@@ -87,8 +85,14 @@ void receiver_start(receiver_t *rec){
 }
 
 void receiver_set_filename(receiver_t *rec, const char* filename){
+	rec->sink->close();
+	rec->sink->open(filename);
 }
 
 void receiver_stop(receiver_t *rec){
 	rec->top_block->stop();
+	rec->sink->close();
+
+	//wait for top block to stop
+	rec->top_block->wait();
 }

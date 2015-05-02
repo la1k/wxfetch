@@ -1,10 +1,10 @@
 #include <iostream>
 #include <vector>
+#include <sstream>
 #include "receiver.h"
 #include "tracker.h"
 using namespace std;
 
-//frequencies in kHz
 void wxsat_prepare(int *num_satellites, struct orbit*** satellites, float **freqs){
 	const char *tle_noaa15[2] = {"1 25338U 98030A   15111.44744815  .00000353  00000-0  16813-3 0  9990",
 	"2 25338  98.7719 110.0498 0010142 339.5996  20.4777 14.25603267880750"};
@@ -27,8 +27,6 @@ void wxsat_prepare(int *num_satellites, struct orbit*** satellites, float **freq
 	(*freqs)[1] = 137.9125*1.0e03;
 	(*freqs)[2] = 137.1000*1.0e03;
 }
-
-
 
 int main(){
 	//satellites
@@ -63,38 +61,41 @@ int main(){
 
 		double time_until_start_sec = (time_of_arrival - curr_time)*DAYS_TO_SECONDS_FACTOR;
 		double duration_secs = (time_of_departure - time_of_arrival)*DAYS_TO_SECONDS_FACTOR;
-		fprintf(stderr, "Calculated next satellite pass: cat %d in %f hours, lasting %f minutes.\n", satellites[sat_ind]->catnum, time_until_start_sec/(60*60), duration_secs/60);
-
-		double sattrack_timestep = 1.0f/(24.0f*60*60); //compensate for doppler shift every second
-		while (curr_time <= time_of_arrival){
-			curr_time = CurrentDaynum();
-			double azimuth, elevation;
-			sattrack_get_aziele(curr_time, &obs_geodetic, satellites[sat_ind], &azimuth, &elevation);
-			orbit_predict(satellites[sat_ind], curr_time);
-			//cout << Degrees(azimuth) << " " << Degrees(elevation) << endl;
-			//cout << Degrees(satellites[sat_ind]->latitude) << " " << 360-Degrees(satellites[sat_ind]->longitude) << endl;
-
-			sleep(1);
-		}
+		fprintf(stderr, "Calculated next satellite pass: cat %d in %f minutes, lasting %f minutes.\n", satellites[sat_ind]->catnum, time_until_start_sec/(60), duration_secs/60);
 
 		//sleep until approx. start
 		sleep(time_until_start_sec);
 
 		//satellite is here! Start gnuradio and doppler shift calculations. 
+		ostringstream filename;
+		time_t curr_epoch = time(NULL);
+		tm curr_datetime = *localtime(&curr_epoch);
+
+		const int MAX_DATESTR_SIZE = 200;
+		char datestr[MAX_DATESTR_SIZE];
+		strftime(datestr, MAX_DATESTR_SIZE, "%Y-%m-%d-%H%M%S", &curr_datetime);
+
+		filename << "wxfetch_cat_" << satellites[sat_ind]->catnum << "_" << datestr << ".wav";
+			
+		double sattrack_timestep = 1.0f;
 		double sat_freqv = freqs[sat_ind];
 		receiver_set_frequency(&receiver, sat_freqv);
 		receiver_start(&receiver);
+		receiver_set_filename(&receiver, filename.str().c_str());
 		while (curr_time < time_of_departure){
 			curr_time = CurrentDaynum();
 			orbit_predict(satellites[sat_ind], curr_time);
+	
+			//FIXME: Doppler shift calculation. 
+			double corr_freqv = sat_freqv;
 
-			double curr_freqv = sat_freqv*sattrack_get_doppler_shift(curr_time, satellites[sat_ind]);
-			receiver_set_frequency(&receiver, curr_freqv);
+			receiver_set_frequency(&receiver, corr_freqv);
+			sleep(sattrack_timestep);
 		}
 		receiver_stop(&receiver);
 		
 		//sleep some extra time just to shake off the last satellite. 
-		sleep(60);
+		sleep(1);
 	}
 	
 	return 0;

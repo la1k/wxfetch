@@ -5,6 +5,14 @@ using namespace std;
 
 const float ELE_THRESH = 0.3;
 
+void sattrack_get_aziele(double time, geodetic_t *qth_coord, orbit *satellite, double *azimuth, double *elevation){
+	double jul_utc = time + 2444238.5;
+	vector_t obs_set;
+	Calculate_Obs(jul_utc, satellite->position, satellite->velocity, qth_coord, &obs_set);
+	*azimuth = Degrees(obs_set.x);
+	*elevation = Degrees(obs_set.y);
+}
+
 void sattrack_get_best_elevation(double start_time, double time_offset, double time_step, geodetic_t *qth_coord, int num_satellites, orbit **satellites, int *best_satellite_ind, double *time_of_arrival, double *time_of_los){
 	vector<int> checked_satellites; //satellites which have already had their elevations checked
 	float max_ele = -1;
@@ -57,17 +65,6 @@ void sattrack_get_best_elevation(double start_time, double time_offset, double t
 	}
 }
 
-double sattrack_get_doppler_shift(double time, orbit *satellite){
-	return 1.0;
-}
-
-void sattrack_get_aziele(double time, geodetic_t *qth_coord, orbit *satellite, double *azimuth, double *elevation){
-	double jul_utc = time + 2444238.5;
-	vector_t obs_set;
-	Calculate_Obs(jul_utc, satellite->position, satellite->velocity, qth_coord, &obs_set);
-	*azimuth = Degrees(obs_set.x);
-	*elevation = Degrees(obs_set.y);
-}
 	
 
 double sattrack_get_max_elevation(double start_time, double time_step, geodetic_t *qth_coord, orbit *satellite, double *sat_duration){
