@@ -5,7 +5,7 @@ extern "C"{
 
 void sattrack_get_best_elevation(double time, double time_offset, double time_step, geodetic_t *qth_coord, int num_satellites, orbit **satellites, int *sat_ind, double *time_of_arrival, double *time_of_los);
 
-double sattrack_get_khz_frequency(double time, orbit *satellite);
+double sattrack_get_doppler_shift(double time, orbit *satellite);
 
 void sattrack_get_aziele(double time, geodetic_t *qth_coord, orbit *satellite, double *azimuth, double *elevation);
 

@@ -86,6 +86,9 @@ void receiver_start(receiver_t *rec){
 	rec->top_block->start();
 }
 
+void receiver_set_filename(receiver_t *rec, const char* filename){
+}
+
 void receiver_stop(receiver_t *rec){
 	rec->top_block->stop();
 }

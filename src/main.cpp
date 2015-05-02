@@ -6,27 +6,26 @@ using namespace std;
 
 //frequencies in kHz
 void wxsat_prepare(int *num_satellites, struct orbit*** satellites, float **freqs){
-	//const char *tle_noaa15[2] = {"1 25338U 98030A   15111.44744815  .00000353  00000-0  16813-3 0  9990",
-	//"2 25338  98.7719 110.0498 0010142 339.5996  20.4777 14.25603267880750"};
+	const char *tle_noaa15[2] = {"1 25338U 98030A   15111.44744815  .00000353  00000-0  16813-3 0  9990",
+	"2 25338  98.7719 110.0498 0010142 339.5996  20.4777 14.25603267880750"};
 	const char *tle_noaa18[2] = {"1 28654U 05018A   15111.52351205  .00000264  00000-0  16910-3 0  9993",
 	"2 28654  99.1819 102.7929 0015245 117.6325 242.6395 14.12181499511071"};
-	//const char *tle_noaa19[2] = {"1 33591U 09005A   15111.47492914  .00000377  00000-0  23086-3 0  9993",
-	//"2 33591  98.9850  61.2335 0013646 334.4839  25.5657 14.11916313319481"};
+	const char *tle_noaa19[2] = {"1 33591U 09005A   15111.47492914  .00000377  00000-0  23086-3 0  9993",
+	"2 33591  98.9850  61.2335 0013646 334.4839  25.5657 14.11916313319481"};
 
 	*num_satellites = 1;
 	*satellites = new struct orbit*[*num_satellites];
 	(*satellites)[0] = new struct orbit;
-	//(*satellites)[1] = new struct orbit;
-	//(*satellites)[2] = new struct orbit;
-	//orbit_init((*satellites)[0], tle_noaa15);
-	//orbit_init((*satellites)[1], tle_noaa18);
-	orbit_init((*satellites)[0], tle_noaa18);
-	//orbit_init((*satellites)[2], tle_noaa19);
+	(*satellites)[1] = new struct orbit;
+	(*satellites)[2] = new struct orbit;
+	orbit_init((*satellites)[0], tle_noaa15);
+	orbit_init((*satellites)[1], tle_noaa18);
+	orbit_init((*satellites)[2], tle_noaa19);
 
 	*freqs = new float[*num_satellites];
 	(*freqs)[0] = 137.62*1.0e03;
-	//(*freqs)[1] = 137.9125*1.0e03;
-	//(*freqs)[2] = 137.1000*1.0e03;
+	(*freqs)[1] = 137.9125*1.0e03;
+	(*freqs)[2] = 137.1000*1.0e03;
 }
 
 
