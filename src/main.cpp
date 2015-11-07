@@ -122,12 +122,20 @@ int main(){
 		sleep(seconds);
 
 		curr_time = next_aos;
+		int last_ele = 0;
+		int last_azi = 0;
 		while (curr_time < next_los) {
 			curr_time = predict_to_julian(time(NULL));
 			predict_orbit(orbit, curr_time);
 			struct predict_observation obs;
 			predict_observe_orbit(observer, orbit, &obs);
-			cout << obs.azimuth*180.0/M_PI << " " << obs.elevation*180.0/M_PI << endl;
+			int ele = obs.elevation*180.0/M_PI;
+			int azi = obs.azimuth*180.0/M_PI;
+			if ((ele != last_ele) || (azi != last_azi)){
+				cout << azi << " " << ele << endl;
+				last_ele = ele;
+				last_azi = azi;
+			}
 			sleep(1);
 		}
 		cin.get();
@@ -136,63 +144,4 @@ int main(){
 
 
 	}
-
-
-#if 0
-	//RTL-SDR receiver
-	receiver_t receiver;
-	receiver_initialize(&receiver);
-	double satcalc_time_step = 1.0f/(24.0f*60);
-	double curr_time = 0;
-	const double DAYS_TO_SECONDS_FACTOR = 24*60*60;
-
-	while (true){
-		//estimate start and stop time of next satellite pass
-		curr_time = CurrentDaynum();
-		double time_of_arrival = 0;
-		int sat_ind = 0;
-		double time_of_departure = 0;
-		sattrack_get_best_elevation(curr_time, 1, satcalc_time_step, &obs_geodetic, num_satellites, satellites, &sat_ind, &time_of_arrival, &time_of_departure);
-
-		double time_until_start_sec = (time_of_arrival - curr_time)*DAYS_TO_SECONDS_FACTOR;
-		double duration_secs = (time_of_departure - time_of_arrival)*DAYS_TO_SECONDS_FACTOR;
-		fprintf(stderr, "Calculated next satellite pass: cat %d in %f minutes, lasting %f minutes.\n", satellites[sat_ind]->catnum, time_until_start_sec/(60), duration_secs/60);
-
-		//sleep until approx. start
-		sleep(time_until_start_sec);
-
-		//satellite is here! Start gnuradio and doppler shift calculations.
-		ostringstream filename;
-		time_t curr_epoch = time(NULL);
-		tm curr_datetime = *localtime(&curr_epoch);
-
-		const int MAX_DATESTR_SIZE = 200;
-		char datestr[MAX_DATESTR_SIZE];
-		strftime(datestr, MAX_DATESTR_SIZE, "%Y-%m-%d-%H%M%S", &curr_datetime);
-
-		filename << "wxfetch_cat_" << satellites[sat_ind]->catnum << "_" << datestr << ".wav";
-
-		double sattrack_timestep = 1.0f;
-		double sat_freqv = freqs[sat_ind];
-		receiver_set_frequency(&receiver, sat_freqv);
-		receiver_start(&receiver);
-		receiver_set_filename(&receiver, filename.str().c_str());
-		while (curr_time < time_of_departure){
-			curr_time = CurrentDaynum();
-			orbit_predict(satellites[sat_ind], curr_time);
-
-			//FIXME: Doppler shift calculation.
-			double corr_freqv = sat_freqv;
-
-			receiver_set_frequency(&receiver, corr_freqv);
-			sleep(sattrack_timestep);
-		}
-		receiver_stop(&receiver);
-
-		//sleep some extra time just to shake off the last satellite.
-		sleep(1);
-	}
-
-	return 0;
-#endif
 }
