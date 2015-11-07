@@ -138,10 +138,5 @@ int main(){
 			}
 			sleep(1);
 		}
-		cin.get();
-
-
-
-
 	}
 }
