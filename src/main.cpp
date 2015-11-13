@@ -21,6 +21,7 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #ifdef WIN32
 #include "w32util.h"
 #else
@@ -28,7 +29,6 @@
 #endif
 #include <string.h>
 #include <sndfile.h>
-#include <png.h>
 
 
 extern int getpixelrow(float *pixelv);
@@ -74,15 +74,8 @@ int getsample(float *sample, int nb)
 
 int main(int argc, char **argv)
 {
-    char pngfilename[1024];
-    char name[1024];
-    char pngdirname[1024] = "";
-    char imgopt[20] = "ac";
     float *prow[3000];
-    char *chid[6] = { "1", "2", "3A", "4", "5", "3B" };
     int nrow;
-    int ch;
-    int c;
 
     for (nrow = 0; nrow < 3000; nrow++)
 	prow[nrow] = NULL;
