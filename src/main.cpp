@@ -90,6 +90,7 @@ int main(int argc, char **argv)
 		finished = (retval == 0);
 		
 		img.push_back(cv::Mat(1, num_cols, CV_32FC1, pixel_data).clone());
+		delete [] pixel_data;
 	}
 	sf_close(inwav);
 
