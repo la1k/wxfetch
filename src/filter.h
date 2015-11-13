@@ -20,6 +20,9 @@
  *
  */
 
+#ifndef FILTER_H_DEFINED
+#define FILTER_H_DEFINED
+
 typedef struct {
 float G;
 float x[3];
@@ -36,3 +39,4 @@ void iqfir(float *buff,const float *Icoeff,const float *Qcoeff, const int len ,f
 float fir(float *buff,const float *coeff,const int len);
 double iir(double x,iirbuff_t *buff, const iircoeff_t *coeff);
 
+#endif

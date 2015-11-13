@@ -31,16 +31,7 @@
 #include <sndfile.h>
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
-
-
-extern int getpixelrow(float *pixelv);
-
-#define SYNC_WIDTH 39
-#define SPC_WIDTH 47
-#define TELE_WIDTH 45
-#define CH_WIDTH  909
-#define CH_OFFSET  (SYNC_WIDTH+SPC_WIDTH+CH_WIDTH+TELE_WIDTH)
-#define IMG_WIDTH  2080
+#include "dsp.h"
 
 static SNDFILE *inwav;
 
@@ -83,10 +74,14 @@ int main(int argc, char **argv)
 
 	cv::Mat img(0, num_cols, CV_32FC1);
 
+	apt_t apt;
+	apt_initialize(&apt);
+
+
 	bool finished = false;
 	while (!finished) {
 		float *pixel_data = new float[num_cols]();
-		int retval = getpixelrow(pixel_data);
+		int retval = getpixelrow(&apt, pixel_data);
 		finished = (retval == 0);
 		
 		img.push_back(cv::Mat(1, num_cols, CV_32FC1, pixel_data).clone());

@@ -20,6 +20,9 @@
  *
  */
 
+#ifndef FILTERCOEFF_H_DEFINED
+#define FILTERCOEFF_H_DEFINED
+
 const iircoeff_t PhaseFilterCf=
 {  3.106389554e+03,
   { 3.8373714492, 5.6747428984, 3.8373714492 },
@@ -131,3 +134,5 @@ const float rsfilter[RSFilterLen] = {
 -4.07485E-04, -9.41810E-05, 5.90669E-04, 1.80631E-03, -1.34249E-03
 };
 
+
+#endif

@@ -30,124 +30,136 @@
 #define Fe 11025.0
 #define Fc 2400.0
 #define DFc 50.0
-#define PixelLine 2080
 #define Fp (2*PixelLine)
 #define RSMULT 10
 #define Fi (Fp*RSMULT)
-static double FreqOsc = Fc / Fe;
-static double FreqLine = 1.0;
-
-extern int getsample(float *inbuff, int nb);
-
-static float pll(float In)
-{
 
 /* pll coeff */
 #define K1 5e-3
 #define K2 3e-6
-    static double PhaseOsc = 0.0;
-    static iirbuff_t Ifilterbuff, Qfilterbuff;
+#define BLKIN 1024
+
+
+#include "dsp.h"
+
+extern int getsample(float *inbuff, int nb);
+
+
+
+float pll_initialize(pll_t *pll_m){
+	pll_m->PhaseOsc = 0.0;
+	pll_m->FreqOsc = Fc / Fe;
+	pll_m->fr = Fc / Fe;
+	pll_m->FreqOsc = Fc / Fe;
+}
+
+static float pll(pll_t *pll_m, float In)
+{
     double Io, Qo;
     double Ip, Qp;
     double DPhi;
     double DF;
 
-/* quadrature oscillator */
-    Io = cos(PhaseOsc);
-    Qo = sin(PhaseOsc);
+    /* quadrature oscillator */
+    Io = cos(pll_m->PhaseOsc);
+    Qo = sin(pll_m->PhaseOsc);
 
-/* phase detector */
-    Ip = iir(In * Io, &Ifilterbuff, &PhaseFilterCf);
-    Qp = iir(In * Qo, &Qfilterbuff, &PhaseFilterCf);
+    /* phase detector */
+    Ip = iir(In * Io, &(pll_m->Ifilterbuff), &PhaseFilterCf);
+    Qp = iir(In * Qo, &(pll_m->Qfilterbuff), &PhaseFilterCf);
     DPhi = -atan2(Qp, Ip) / M_PI;
 
-/*  loop filter  */
-    DF = K1 * DPhi + FreqOsc;
-    FreqOsc += K2 * DPhi;
-    if (FreqOsc > ((Fc + DFc) / Fe))
-	FreqOsc = (Fc + DFc) / Fe;
-    if (FreqOsc < ((Fc - DFc) / Fe))
-	FreqOsc = (Fc - DFc) / Fe;
-    PhaseOsc += 2.0 * M_PI * DF;
-    if (PhaseOsc > M_PI)
-	PhaseOsc -= 2.0 * M_PI;
-    if (PhaseOsc <= -M_PI)
-	PhaseOsc += 2.0 * M_PI;
+    /*  loop filter  */
+    DF = K1 * DPhi + pll_m->FreqOsc;
+    pll_m->FreqOsc += K2 * DPhi;
+    if (pll_m->FreqOsc > ((Fc + DFc) / Fe))
+	pll_m->FreqOsc = (Fc + DFc) / Fe;
+    if (pll_m->FreqOsc < ((Fc - DFc) / Fe))
+	pll_m->FreqOsc = (Fc - DFc) / Fe;
+    pll_m->PhaseOsc += 2.0 * M_PI * DF;
+
+    if (pll_m->PhaseOsc > M_PI)
+	pll_m->PhaseOsc -= 2.0 * M_PI;
+    if (pll_m->PhaseOsc <= -M_PI)
+	pll_m->PhaseOsc += 2.0 * M_PI;
+	
+    pll_m->fr = 0.25 * pll_m->FreqOsc + 0.75 * pll_m->fr;
     return (float) (In * Io);
 }
 
-static double fr = Fc / Fe;
 static double offset = 0.0;
 
-int getamp(float *ambuff, int nb)
+int getamp(pll_t *phaselock, float *ambuff, int nb)
 {
 
-#define BLKIN 1024
     float inbuff[BLKIN];
     int n;
     int res;
 
     res = getsample(inbuff, nb > BLKIN ? BLKIN : nb);
     for (n = 0; n < res; n++) {
-	ambuff[n] = pll(inbuff[n]);
-	fr = 0.25 * FreqOsc + 0.75 * fr;
+	ambuff[n] = pll(phaselock, inbuff[n]);
     }
     return (res);
 }
 
-int getpixelv(float *pvbuff, int nb)
-{
 
-#define BLKAMP 256
-    static float ambuff[BLKAMP];
-    static int nam = 0;
-    static int idxam = 0;
+void apt_initialize(apt_t *apt)
+{
+	apt->npv = 0;
+	apt->synced = 0;
+	apt->max = 0.0;
+	apt->nam = 0;
+	apt->idxam = 0;
+	apt->FreqLine = 1.0;
+
+	pll_initialize(&apt->phaselock);
+}
+
+int getpixelv(apt_t *apt, float *pvbuff, int nb)
+{
     int n;
 
     for (n = 0; n < nb; n++) {
 	double mult;
 	int shift;
 
-	if (nam < BLKAMP) {
+	if (apt->nam < BLKAMP) {
 	    int res;
-	    memmove(ambuff, &(ambuff[idxam]), nam * sizeof(float));
-	    idxam = 0;
-	    res = getamp(&(ambuff[nam]), BLKAMP - nam);
-	    nam += res;
-	    if (nam < BLKAMP)
+	    memmove(apt->ambuff, &(apt->ambuff[apt->idxam]), apt->nam * sizeof(float));
+	    apt->idxam = 0;
+	    res = getamp(&(apt->phaselock), &(apt->ambuff[apt->nam]), BLKAMP - apt->nam);
+	    apt->nam += res;
+	    if (apt->nam < BLKAMP)
 		return (n);
 	}
 
-	mult = (double) Fi *fr / Fc * FreqLine;
+	mult = (double) Fi * apt->phaselock.fr / Fc * apt->FreqLine;
 
 	pvbuff[n] =
-	    rsfir(&(ambuff[idxam]), rsfilter, RSFilterLen, offset,
+	    rsfir(&(apt->ambuff[apt->idxam]), rsfilter, RSFilterLen, offset,
 		  mult) * mult * 2 * 256.0;
 
 	shift = (int) ((RSMULT - offset + mult - 1) / mult);
 	offset = shift * mult + offset - RSMULT;
-	idxam += shift;
-	nam -= shift;
+	apt->idxam += shift;
+	apt->nam -= shift;
     }
     return (nb);
 }
 
-int getpixelrow(float *pixelv)
-{
-    static float pixels[PixelLine + SyncFilterLen];
-    static int npv = 0;
-    static int synced = 0;
-    static double max = 0.0;
 
+int getpixelrow(apt_t *apt, float *pixelv)
+{
     double corr, ecorr, lcorr;
     int res;
 
-    if (npv > 0)
-	memmove(pixelv, pixels, npv * sizeof(float));
-    if (npv < SyncFilterLen + 2) {
-	res = getpixelv(&(pixelv[npv]), SyncFilterLen + 2 - npv);
-	npv += res;
-	if (npv < SyncFilterLen + 2)
+    if (apt->npv > 0)
+	memmove(pixelv, apt->pixels, apt->npv * sizeof(float));
+    if (apt->npv < SyncFilterLen + 2) {
+	res = getpixelv(apt, &(pixelv[apt->npv]), SyncFilterLen + 2 - apt->npv);
+	apt->npv += res;
+	if (apt->npv < SyncFilterLen + 2)
 	    return (0);
     }
 
@@ -155,20 +167,20 @@ int getpixelrow(float *pixelv)
     corr = fir(&(pixelv[1]), Sync, SyncFilterLen);
     ecorr = fir(pixelv, Sync, SyncFilterLen);
     lcorr = fir(&(pixelv[2]), Sync, SyncFilterLen);
-    FreqLine = 1.0 + (ecorr - lcorr) / corr / PixelLine / 4.0;
-    if (corr < 0.75 * max) {
-	synced = 0;
-	FreqLine = 1.0;
+    apt->FreqLine = 1.0 + (ecorr - lcorr) / corr / PixelLine / 4.0;
+    if (corr < 0.75 * apt->max) {
+	apt->synced = 0;
+	apt->FreqLine = 1.0;
     }
-    max = corr;
-    if (synced < 8) {
+    apt->max = corr;
+    if (apt->synced < 8) {
 	int shift, mshift;
 
-	if (npv < PixelLine + SyncFilterLen) {
+	if (apt->npv < PixelLine + SyncFilterLen) {
 	    res =
-		getpixelv(&(pixelv[npv]), PixelLine + SyncFilterLen - npv);
-	    npv += res;
-	    if (npv < PixelLine + SyncFilterLen)
+		getpixelv(apt, &(pixelv[apt->npv]), PixelLine + SyncFilterLen - apt->npv);
+	    apt->npv += res;
+	    if (apt->npv < PixelLine + SyncFilterLen)
 		return (0);
 	}
 
@@ -178,32 +190,32 @@ int getpixelrow(float *pixelv)
 	    double corr;
 
 	    corr = fir(&(pixelv[shift + 1]), Sync, SyncFilterLen);
-	    if (corr > max) {
+	    if (corr > apt->max) {
 		mshift = shift;
-		max = corr;
+		apt->max = corr;
 	    }
 	}
 	if (mshift != 0) {
 	    memmove(pixelv, &(pixelv[mshift]),
-		    (npv - mshift) * sizeof(float));
-	    npv -= mshift;
-	    synced = 0;
-	    FreqLine = 1.0;
+		    (apt->npv - mshift) * sizeof(float));
+	    apt->npv -= mshift;
+	    apt->synced = 0;
+	    apt->FreqLine = 1.0;
 	} else
-	    synced += 1;
+	    apt->synced += 1;
     }
-    if (npv < PixelLine) {
-	res = getpixelv(&(pixelv[npv]), PixelLine - npv);
-	npv += res;
-	if (npv < PixelLine)
+    if (apt->npv < PixelLine) {
+	res = getpixelv(apt, &(pixelv[apt->npv]), PixelLine - apt->npv);
+	apt->npv += res;
+	if (apt->npv < PixelLine)
 	    return (0);
     }
-    if (npv == PixelLine) {
-	npv = 0;
+    if (apt->npv == PixelLine) {
+	apt->npv = 0;
     } else {
-	memmove(pixels, &(pixelv[PixelLine]),
-		(npv - PixelLine) * sizeof(float));
-	npv -= PixelLine;
+	memmove(apt->pixels, &(pixelv[PixelLine]),
+		(apt->npv - PixelLine) * sizeof(float));
+	apt->npv -= PixelLine;
     }
 
     return (1);
