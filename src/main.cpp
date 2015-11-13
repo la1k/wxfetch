@@ -76,36 +76,22 @@ int getsample(float *sample, int nb)
 
 int main(int argc, char **argv)
 {
-    float *prow[3000];
-    int nrow;
-
-    for (nrow = 0; nrow < 3000; nrow++)
-	prow[nrow] = NULL;
-
-/* open snd input */
 	if (initsnd(argv[1]))
-	    exit(1);
+		exit(1);
 
-/* main loop */
-	int num_rows = 0;
 	int num_cols = 2150;
-	for (nrow = 0; nrow < 3000; nrow++) {
-	    if (prow[nrow] == NULL) {
-		prow[nrow] = (float *) malloc(sizeof(float) * num_cols);
-		for (int i=0; i < 2150; i++){
-			prow[nrow][i] = 0;
-		}
-	    }
-	    num_rows++;
-	    if (getpixelrow(prow[nrow]) == 0)
-		break;
+
+	cv::Mat img(0, num_cols, CV_32FC1);
+
+	bool finished = false;
+	while (!finished) {
+		float *pixel_data = new float[num_cols]();
+		int retval = getpixelrow(pixel_data);
+		finished = (retval == 0);
+		
+		img.push_back(cv::Mat(1, num_cols, CV_32FC1, pixel_data).clone());
 	}
 	sf_close(inwav);
 
-	float *image_data = new float[num_rows*num_cols]();
-	for (int i=0; i < num_rows; i++) {
-		memcpy(image_data + i*num_cols, prow[i], sizeof(float)*num_cols);
-	}
-	cv::Mat img(num_rows, num_cols, CV_32FC1, image_data);
 	imwrite("test.png", img);
 }
