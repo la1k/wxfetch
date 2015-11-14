@@ -89,18 +89,12 @@ static float pll(pll_t *pll_m, float In)
 
 static double offset = 0.0;
 
-int getamp(pll_t *phaselock, float *ambuff, int nb)
+void getamp(pll_t *phaselock, float *ambuff, float *sound_samples, int nb)
 {
-
-    float inbuff[BLKIN];
     int n;
-    int res;
-
-    res = getsample(inbuff, nb > BLKIN ? BLKIN : nb);
-    for (n = 0; n < res; n++) {
-	ambuff[n] = pll(phaselock, inbuff[n]);
+    for (n = 0; n < nb; n++) {
+	ambuff[n] = pll(phaselock, sound_samples[n]);
     }
-    return (res);
 }
 
 
@@ -128,7 +122,11 @@ int getpixelv(apt_t *apt, float *pvbuff, int nb)
 	    int res;
 	    memmove(apt->ambuff, &(apt->ambuff[apt->idxam]), apt->nam * sizeof(float));
 	    apt->idxam = 0;
-	    res = getamp(&(apt->phaselock), &(apt->ambuff[apt->nam]), BLKAMP - apt->nam);
+
+	    float sound_buff[BLKAMP];
+	    int num_samples = BLKAMP - apt->nam;
+	    res = getsample(sound_buff, num_samples);
+	    getamp(&(apt->phaselock), &(apt->ambuff[apt->nam]), sound_buff, BLKAMP - apt->nam);
 	    apt->nam += res;
 	    if (apt->nam < BLKAMP)
 		return (n);
