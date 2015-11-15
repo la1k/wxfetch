@@ -26,18 +26,7 @@
 #endif				/*  */
 #include "filter.h"
 #include "filtercoeff.h"
-
-#define Fe 11025.0
-#define Fc 2400.0
-#define DFc 50.0
-#define Fp (2*PixelLine)
-#define RSMULT 10
-#define Fi (Fp*RSMULT)
-
-/* pll coeff */
-#define K1 5e-3
-#define K2 3e-6
-#define BLKIN 1024
+#include <stdlib.h>
 
 
 #include "dsp.h"
@@ -217,4 +206,89 @@ int getpixelrow(apt_t *apt, float *pixelv)
     }
 
     return (1);
+}
+
+void buffer_initialize(buffer_t *buffer, int tot_num_samples)
+{
+	buffer->data = (float*)malloc(sizeof(float)*tot_num_samples);
+	buffer->total_num_samples = tot_num_samples;
+	buffer->current_start_position = 0;
+	buffer->current_end_position = 0;
+}
+
+int buffer_fill(buffer_t *buffer, int num_samples, float *samples)
+{
+	//split data in two parts: one from the current end position to the end of the data array (or current start), one from the start of the data array to the current start
+	int first_part_len = num_samples;
+	int second_part_len = 0;
+	int new_end_pos = buffer->current_start_position + num_samples;
+	if ((buffer->current_end_position < buffer->current_start_position) && ((buffer->current_start_position - buffer->current_end_position) < num_samples)) {
+		first_part_len = buffer->current_start_position - buffer->current_end_position;
+		new_end_pos = buffer->current_start_position - 1;
+	}
+	
+	if (first_part_len > (buffer->total_num_samples - buffer->current_end_position)) {
+		first_part_len = buffer->total_num_samples - buffer->current_start_position - num_samples;
+		second_part_len = num_samples - first_part_len;
+		new_end_pos = second_part_len;
+	}
+
+	if (second_part_len > (buffer->current_start_position)) {
+		second_part_len = buffer->current_start_position;
+		new_end_pos = second_part_len;
+	}
+
+	//copy data
+	memcpy(buffer->data + buffer->current_end_position, samples, sizeof(float)*first_part_len);
+	if (second_part_len > 0) {
+		memcpy(buffer->data, samples + first_part_len, sizeof(float)*second_part_len);
+	}
+	buffer->current_end_position = new_end_pos;
+	return first_part_len + second_part_len;
+}
+
+int buffer_read(buffer_t *buffer, int num_samples, float *samples)
+{
+	if (buffer_length(buffer) <= 0) {
+		return 0;
+	}
+
+	int first_part_len = num_samples;
+	int second_part_len = 0;
+	int new_start_pos = (buffer->current_start_position + num_samples) % buffer->total_num_samples;
+	int new_end_pos = buffer->current_end_position;
+
+	if ((buffer->current_end_position < buffer->current_start_position) && (first_part_len > (buffer->total_num_samples - buffer->current_start_position))) {
+		first_part_len = buffer->total_num_samples - buffer->current_start_position;
+		second_part_len = num_samples - first_part_len;
+		new_start_pos = second_part_len;
+	} else if (first_part_len > (buffer->current_end_position - buffer->current_start_position)) {
+		first_part_len = buffer->current_end_position - buffer->current_start_position;
+		new_start_pos = 0;
+		new_end_pos = 0;
+	}
+	if (second_part_len > buffer->current_end_position){
+		second_part_len = buffer->current_end_position;
+		new_start_pos = 0;
+		new_end_pos = 0;
+	}
+	
+	memcpy(samples, buffer->data + buffer->current_start_position, sizeof(float)*first_part_len);
+	if (second_part_len > 0) {
+		memcpy(samples + first_part_len, buffer->data, sizeof(float)*second_part_len);
+	}
+	buffer->current_start_position = new_start_pos;
+	buffer->current_end_position = new_end_pos;
+
+}
+
+int buffer_length(buffer_t *buffer)
+{
+	int length = 0;
+	if (buffer->current_end_position < buffer->current_start_position) {
+		length = buffer->total_num_samples - buffer->current_start_position + buffer->current_end_position;
+	} else {
+		length = buffer->current_end_position - buffer->current_start_position;
+	}
+	return length;
 }
