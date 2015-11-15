@@ -45,6 +45,7 @@ typedef struct {
 	int total_num_samples;
 	int current_start_position;
 	int current_end_position;
+	int current_num_samples;
 } buffer_t;
 
 void buffer_initialize(buffer_t *buffer, int tot_num_samples);

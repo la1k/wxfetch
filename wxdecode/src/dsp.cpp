@@ -214,37 +214,44 @@ void buffer_initialize(buffer_t *buffer, int tot_num_samples)
 	buffer->total_num_samples = tot_num_samples;
 	buffer->current_start_position = 0;
 	buffer->current_end_position = 0;
+	buffer->current_num_samples = 0;
 }
 
+#include <iostream>
+using namespace std;
 int buffer_fill(buffer_t *buffer, int num_samples, float *samples)
 {
-	//split data in two parts: one from the current end position to the end of the data array (or current start), one from the start of the data array to the current start
-	int first_part_len = num_samples;
+	//number of samples we can write to the buffer
+	int capacity = buffer->total_num_samples - buffer->current_num_samples;
+	int write_samples = num_samples;
+	if (num_samples > capacity) {
+		write_samples = capacity;
+	}
+
+	int first_part_len = write_samples;
 	int second_part_len = 0;
-	int new_end_pos = buffer->current_start_position + num_samples;
-	if ((buffer->current_end_position < buffer->current_start_position) && ((buffer->current_start_position - buffer->current_end_position) < num_samples)) {
-		first_part_len = buffer->current_start_position - buffer->current_end_position;
-		new_end_pos = buffer->current_start_position - 1;
-	}
-	
-	if (first_part_len > (buffer->total_num_samples - buffer->current_end_position)) {
-		first_part_len = buffer->total_num_samples - buffer->current_start_position - num_samples;
-		second_part_len = num_samples - first_part_len;
-		new_end_pos = second_part_len;
+	int end_space = buffer->total_num_samples - (buffer->current_start_position + buffer->current_num_samples);
+
+	if (end_space <= 0) { //no space left at the end of the array
+		first_part_len = 0;
+		second_part_len = write_samples;
+	} else if (end_space < first_part_len) { //some space at the end, some space at the beginning
+		first_part_len = end_space;
+		second_part_len = write_samples - end_space;
+		end_space = 0;
 	}
 
-	if (second_part_len > (buffer->current_start_position)) {
-		second_part_len = buffer->current_start_position;
-		new_end_pos = second_part_len;
+	if (first_part_len > 0) {
+		memcpy(buffer->data + buffer->current_start_position + buffer->current_num_samples, samples, sizeof(float)*first_part_len);
 	}
 
-	//copy data
-	memcpy(buffer->data + buffer->current_end_position, samples, sizeof(float)*first_part_len);
 	if (second_part_len > 0) {
-		memcpy(buffer->data, samples + first_part_len, sizeof(float)*second_part_len);
+		int start_copy = abs(end_space);
+		memcpy(buffer->data + start_copy, samples + first_part_len, sizeof(float)*second_part_len);
 	}
-	buffer->current_end_position = new_end_pos;
-	return first_part_len + second_part_len;
+
+	buffer->current_num_samples += write_samples;
+	return write_samples;
 }
 
 int buffer_read(buffer_t *buffer, int num_samples, float *samples)
