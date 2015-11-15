@@ -5,6 +5,7 @@
 #include <ctime>
 #include <cstring>
 #include <unistd.h>
+#include <stdio.h>
 //#include "receiver.h"
 #include "tracker.h"
 using namespace std;
@@ -38,105 +39,52 @@ int main(){
 
 	//QTH
 	predict_observer_t *observer = predict_create_observer("test_qth", 63.422429*M_PI/180.0, -10.395282*M_PI/180.0, 0);
+	int last_elevation = 0;
+	int last_azimuth = 0;
+
+	//clear screen
+	printf("\e[1;1H\e[2J");
 
 	while (true) {
 		predict_julian_date_t curr_time = predict_to_julian(time(NULL));
 
-		vector<predict_julian_date_t> orbits_aos;
-		vector<predict_julian_date_t> orbits_los;
-		vector<int> above_horizon;
-		vector<float> orbits_max_ele;
-		for (int i=0; i < orbits.size(); i++){
-			//calculate AOS/LOS
-			predict_orbit_t *orbit = orbits[i];
-			predict_julian_date_t aos = predict_next_aos(observer, orbit, curr_time);
-			predict_julian_date_t los = predict_next_los(observer, orbit, curr_time);
+		vector<struct predict_observation> observations;
 
-			//check whether orbit is already above the horizon
+		double max_elevation = -2*M_PI;
+		int orbit_ind_max = 0;
+
+		//find orbit with highest current elevation
+		for (int i=0; i < orbits.size(); i++) {
 			predict_orbit(orbits[i], curr_time);
 			struct predict_observation obs;
 			predict_observe_orbit(observer, orbits[i], &obs);
-			if (obs.elevation > 0){
-				aos = curr_time;
-				above_horizon.push_back(i);
+
+			if (obs.elevation > max_elevation) {
+				max_elevation = obs.elevation;
+				orbit_ind_max = i;
 			}
 
-			//calculate approximate max elevation for the pass
-			int num_steps = 100;
-			predict_julian_date_t pred_time = aos;
-			double max_ele = -100;
-			for (int j=0; j < num_steps; j++){
-				predict_orbit(orbit, pred_time);
-				struct predict_observation obs;
-				predict_observe_orbit(observer, orbit, &obs);
-				if (obs.elevation > max_ele){
-					max_ele = obs.elevation;
-				}
-				pred_time = (los - aos)/(1.0*num_steps)*j + aos;
-			}
-			orbits_max_ele.push_back(max_ele);
-			orbits_los.push_back(los);
-			orbits_aos.push_back(aos);
+			observations.push_back(obs);
 		}
 
-		//find first orbit to track
-		predict_julian_date_t next_los;
-		predict_julian_date_t next_aos;
-		predict_orbit_t *orbit = NULL;
-		double waiting_time = 0;
-		if (above_horizon.size() > 0){
-			double max_ele = -10;
-			next_aos = curr_time;
+		//track orbit
+		int azimuth = observations[orbit_ind_max].azimuth*180.0/M_PI;
+		int elevation = observations[orbit_ind_max].elevation*180.0/M_PI;
 
-			//find orbit that will have the best pass
-			for (int i=0; i < above_horizon.size(); i++){
-				if (orbits_max_ele[above_horizon[i]] > max_ele){
-					max_ele = orbits_max_ele[above_horizon[i]];
-					orbit = orbits[above_horizon[i]];
-					next_los = orbits_los[above_horizon[i]];
-				}
-			}
+		//print information
+		printf("\033[0;0HOrbit with current highest elevation: %s, aziele %f, %f ", orbits[orbit_ind_max]->name, observations[orbit_ind_max].azimuth*180.0/M_PI, observations[orbit_ind_max].elevation*180.0/M_PI);
+		if (elevation < 0) {
+			printf("(not tracked)\n");
 		} else {
-			//FIXME: Check overlapping orbits, find an orbit sequence that maximizes elevation, duration, ...
-			//find first orbit to rise above the horizon
-			predict_julian_date_t first_aos = orbits_aos[0];
-			for (int i=0; i < orbits_aos.size(); i++){
-				if (orbits_aos[i] < first_aos){
-					first_aos = orbits_aos[i];
-					next_los = orbits_los[i];
-					orbit = orbits[i];
-				}
-			}
-			next_aos = first_aos;
+			printf("(tracked)\n");
 		}
-
-		//wait until pass is here
-		const int MAX_NUM_CHARS = 512;
-		char time_string[MAX_NUM_CHARS];
-		time_t aos_epoch = predict_from_julian(next_aos);
-		strftime(time_string, MAX_NUM_CHARS, "%j.%H:%M:%S", localtime(&aos_epoch));
-		double seconds = predict_from_julian(next_aos) - time(NULL);
-		waiting_time = difftime(predict_from_julian(curr_time), predict_from_julian(next_aos));
-
-		cout << "Waiting until next pass: " << orbit->name << " at " << time_string << ", in " << seconds << " seconds." << endl;
-		sleep(seconds);
-
-		curr_time = next_aos;
-		int last_ele = 0;
-		int last_azi = 0;
-		while (curr_time < next_los) {
-			curr_time = predict_to_julian(time(NULL));
-			predict_orbit(orbit, curr_time);
-			struct predict_observation obs;
-			predict_observe_orbit(observer, orbit, &obs);
-			int ele = obs.elevation*180.0/M_PI;
-			int azi = obs.azimuth*180.0/M_PI;
-			if ((ele != last_ele) || (azi != last_azi)){
-				cout << azi << " " << ele << endl;
-				last_ele = ele;
-				last_azi = azi;
+		printf("\nOther orbits:\n");
+		for (int i=0; i < orbits.size(); i++) {
+			if (i != orbit_ind_max) {
+				printf("%s: %f, %f\n", orbits[i]->name, observations[i].azimuth*180.0/M_PI, observations[i].elevation*180.0/M_PI);
 			}
-			sleep(1);
 		}
+		fflush(stdout);
+		sleep(1);
 	}
 }
