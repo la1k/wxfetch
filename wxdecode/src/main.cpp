@@ -100,11 +100,16 @@ int main(int argc, char **argv)
 		int retval = apt_decode(&apt, &sound_buffer, pixel_data);
 		if (retval != 0) {
 			img.push_back(cv::Mat(1, num_cols, CV_32FC1, pixel_data).clone());
+
+			cv::imshow("test", img/255);
+			cv::waitKey(5);
 		}
 	}
 	sf_close(inwav);
 
 	delete [] pixel_data;
+	cv::imshow("test", img/255);
+	cv::waitKey();
 
 	imwrite("test.png", img);
 }
