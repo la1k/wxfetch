@@ -1,6 +1,8 @@
 #ifndef BUFFER_H_DEFINED
 #define BUFFER_H_DEFINED
 
+#include <pthread.h>
+
 /**
  * Float buffer. Size is reduced when data is read, increased when data is written. Total size and internal data array is constant.
  **/
@@ -9,6 +11,7 @@ typedef struct {
 	int total_num_samples; //total allowable buffer size
 	int current_start_position; //current start of buffered data
 	int current_num_samples; //current length of buffered data
+	pthread_mutex_t mutex;
 } buffer_t;
 
 /**

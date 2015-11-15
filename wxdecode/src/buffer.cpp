@@ -1,6 +1,6 @@
 #include "buffer.h"
 #include <stdlib.h>
-
+#include <string.h>
 
 void buffer_initialize(buffer_t *buffer, int tot_num_samples)
 {
@@ -8,10 +8,14 @@ void buffer_initialize(buffer_t *buffer, int tot_num_samples)
 	buffer->total_num_samples = tot_num_samples;
 	buffer->current_start_position = 0;
 	buffer->current_num_samples = 0;
+
+	pthread_mutex_init(&(buffer->mutex), NULL);
 }
 
 int buffer_fill(buffer_t *buffer, int num_samples, float *samples)
 {
+	pthread_mutex_lock(&(buffer->mutex));
+
 	//number of samples we can write to the buffer
 	int capacity = buffer->total_num_samples - buffer->current_num_samples;
 	int write_samples = num_samples;
@@ -42,6 +46,9 @@ int buffer_fill(buffer_t *buffer, int num_samples, float *samples)
 	}
 
 	buffer->current_num_samples += write_samples;
+	
+	pthread_mutex_unlock(&(buffer->mutex));
+	
 	return write_samples;
 }
 
@@ -49,13 +56,12 @@ void buffer_free(buffer_t *buffer)
 {
 	free(buffer->data);
 	buffer->data = NULL;
+	pthread_mutex_destroy(&(buffer->mutex));
 }
 
 int buffer_read(buffer_t *buffer, int num_samples, float *samples)
 {
-	if (buffer->current_num_samples <= 0) {
-		return 0;
-	}
+	pthread_mutex_lock(&(buffer->mutex));
 
 	int read_samples = num_samples;
 	if (num_samples > buffer->current_num_samples) {
@@ -80,5 +86,8 @@ int buffer_read(buffer_t *buffer, int num_samples, float *samples)
 		buffer->current_num_samples -= second_part_len;
 		buffer->current_start_position = second_part_len;
 	}
+	
+	pthread_mutex_unlock(&(buffer->mutex));
+	
 	return read_samples;
 }
