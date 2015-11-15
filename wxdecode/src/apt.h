@@ -2,7 +2,6 @@
 #define DSP_H_DEFINED
 
 #include "filter.h"
-#include "filtercoeff.h"
 
 #define BLKAMP 256
 #define PixelLine 2080
@@ -21,14 +20,17 @@ typedef struct {
 	float ambuff[BLKAMP]; 
 	int nam; //current number of samples in ambuff
 	int idxam; //current start index in ambuff
-	int npv;
-	int synced;
-	double max;
-	double FreqLine;
-	
-	float pixels[PixelLine + SyncFilterLen];
 
-	pll_t phaselock;
+	double last_max_correlation; //last maximum correlation
+	pll_t phaselock_state; //state of the phaselock filter
+
+	//demodulated pixels left over from the last run
+	float leftover_pixels[PixelLine];
+	int num_leftover_pixels;
+	
+	//weird variables
+	int synced;
+	double FreqLine;
 } apt_t;
 
 

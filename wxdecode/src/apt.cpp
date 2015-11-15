@@ -24,6 +24,7 @@
 #ifndef M_PI
 #define M_PI 3.14159265358979323846	/* for OS that don't know it */
 #endif				/*  */
+#include "apt.h"
 #include "filter.h"
 #include "filtercoeff.h"
 #include "buffer.h"
@@ -34,6 +35,7 @@
 #define Fp (2*PixelLine)
 #define RSMULT 10
 #define Fi (Fp*RSMULT)
+#include <stdio.h>
 
 /* pll coeff */
 #define K1 5e-3
@@ -41,7 +43,6 @@
 #define BLKIN 1024
 
 
-#include "dsp.h"
 
 float pll_initialize(pll_t *pll_m){
 	pll_m->PhaseOsc = 0.0;
@@ -100,14 +101,14 @@ void getamp(pll_t *phaselock, float *ambuff, float *sound_samples, int nb)
 
 void apt_initialize(apt_t *apt)
 {
-	apt->npv = 0;
+	apt->num_leftover_pixels = 0;
 	apt->synced = 0;
-	apt->max = 0.0;
+	apt->last_max_correlation = 0.0;
 	apt->nam = 0;
 	apt->idxam = 0;
 	apt->FreqLine = 1.0;
 
-	pll_initialize(&apt->phaselock);
+	pll_initialize(&apt->phaselock_state);
 }
 
 int getpixelv(buffer_t *sound_buffer, apt_t *apt, float *pvbuff, int nb)
@@ -126,13 +127,13 @@ int getpixelv(buffer_t *sound_buffer, apt_t *apt, float *pvbuff, int nb)
 	    float sound_buff[BLKAMP];
 	    int num_samples = BLKAMP - apt->nam;
 	    res = buffer_read(sound_buffer, num_samples, sound_buff);
-	    getamp(&(apt->phaselock), &(apt->ambuff[apt->nam]), sound_buff, res);
+	    getamp(&(apt->phaselock_state), &(apt->ambuff[apt->nam]), sound_buff, res);
 	    apt->nam += res;
 	    if (apt->nam < BLKAMP)
 		return (n);
 	}
 
-	mult = (double) Fi * apt->phaselock.fr / Fc * apt->FreqLine;
+	mult = (double) Fi * apt->phaselock_state.fr / Fc * apt->FreqLine;
 
 	pvbuff[n] =
 	    rsfir(&(apt->ambuff[apt->idxam]), rsfilter, RSFilterLen, offset,
@@ -147,17 +148,20 @@ int getpixelv(buffer_t *sound_buffer, apt_t *apt, float *pvbuff, int nb)
 }
 
 
-int apt_decode(apt_t *apt, buffer_t *sound_buffer, float *pixelv)
+int apt_decode(apt_t *apt, buffer_t *sound_buffer, float *pixels_out)
 {
     double corr, ecorr, lcorr;
+    float pixelv[PixelLine + SyncFilterLen] = {};
     int res;
-
-    if (apt->npv > 0)
-	memmove(pixelv, apt->pixels, apt->npv * sizeof(float));
-    if (apt->npv < SyncFilterLen + 2) {
-	res = getpixelv(sound_buffer, apt, &(pixelv[apt->npv]), SyncFilterLen + 2 - apt->npv);
-	apt->npv += res;
-	if (apt->npv < SyncFilterLen + 2)
+    int npv = apt->num_leftover_pixels;
+    if (apt->num_leftover_pixels > 0) {
+	memmove(pixelv, apt->leftover_pixels, npv * sizeof(float));
+	apt->num_leftover_pixels = 0;
+    }
+    if (npv < SyncFilterLen + 2) {
+	res = getpixelv(sound_buffer, apt, &(pixelv[npv]), SyncFilterLen + 2 - npv);
+	npv += res;
+	if (npv < SyncFilterLen + 2)
 	    return (0);
     }
 
@@ -166,19 +170,19 @@ int apt_decode(apt_t *apt, buffer_t *sound_buffer, float *pixelv)
     ecorr = fir(pixelv, Sync, SyncFilterLen);
     lcorr = fir(&(pixelv[2]), Sync, SyncFilterLen);
     apt->FreqLine = 1.0 + (ecorr - lcorr) / corr / PixelLine / 4.0;
-    if (corr <= 0.75 * apt->max) {
+    if (corr <= 0.75 * apt->last_max_correlation) {
 	apt->synced = 0;
 	apt->FreqLine = 1.0;
     }
-    apt->max = corr;
+    apt->last_max_correlation = corr;
     if (apt->synced < 8) {
 	int shift, mshift;
 
-	if (apt->npv < PixelLine + SyncFilterLen) {
+	if (npv < PixelLine + SyncFilterLen) {
 	    res =
-		getpixelv(sound_buffer, apt, &(pixelv[apt->npv]), PixelLine + SyncFilterLen - apt->npv);
-	    apt->npv += res;
-	    if (apt->npv < PixelLine + SyncFilterLen)
+		getpixelv(sound_buffer, apt, &(pixelv[npv]), PixelLine + SyncFilterLen - npv);
+	    npv += res;
+	    if (npv < PixelLine + SyncFilterLen)
 		return (0);
 	}
 
@@ -188,33 +192,35 @@ int apt_decode(apt_t *apt, buffer_t *sound_buffer, float *pixelv)
 	    double corr;
 
 	    corr = fir(&(pixelv[shift + 1]), Sync, SyncFilterLen);
-	    if (corr > apt->max) {
+	    if (corr > apt->last_max_correlation) {
 		mshift = shift;
-		apt->max = corr;
+		apt->last_max_correlation = corr;
 	    }
 	}
 	if (mshift != 0) {
 	    memmove(pixelv, &(pixelv[mshift]),
-		    (apt->npv - mshift) * sizeof(float));
-	    apt->npv -= mshift;
+		    (npv - mshift) * sizeof(float));
+	    npv -= mshift;
 	    apt->synced = 0;
 	    apt->FreqLine = 1.0;
 	} else
 	    apt->synced += 1;
     }
-    if (apt->npv < PixelLine) {
-	res = getpixelv(sound_buffer, apt, &(pixelv[apt->npv]), PixelLine - apt->npv);
-	apt->npv += res;
-	if (apt->npv < PixelLine)
+    if (npv < PixelLine) {
+	res = getpixelv(sound_buffer, apt, &(pixelv[npv]), PixelLine - npv);
+	npv += res;
+	if (npv < PixelLine)
 	    return (0);
     }
-    if (apt->npv == PixelLine) {
-	apt->npv = 0;
+    if (npv == PixelLine) {
+	npv = 0;
     } else {
-	memmove(apt->pixels, &(pixelv[PixelLine]),
-		(apt->npv - PixelLine) * sizeof(float));
-	apt->npv -= PixelLine;
+	memmove(apt->leftover_pixels, &(pixelv[PixelLine]),
+		(npv - PixelLine) * sizeof(float));
+	apt->num_leftover_pixels = npv - PixelLine;
     }
+    
+    memcpy(pixels_out, pixelv, PixelLine*sizeof(float));
 
     return (1);
 }
