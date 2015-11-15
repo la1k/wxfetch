@@ -48,6 +48,7 @@ typedef struct {
 } buffer_t;
 
 void buffer_initialize(buffer_t *buffer, int tot_num_samples);
+void buffer_free(buffer_t *buffer);
 int buffer_fill(buffer_t *buffer, int num_samples, float *samples);
 int buffer_read(buffer_t *buffer, int num_samples, float *samples);
 

@@ -253,6 +253,12 @@ int buffer_fill(buffer_t *buffer, int num_samples, float *samples)
 	return write_samples;
 }
 
+void buffer_free(buffer_t *buffer)
+{
+	free(buffer->data);
+	buffer->data = NULL;
+}
+
 int buffer_read(buffer_t *buffer, int num_samples, float *samples)
 {
 	if (buffer->current_num_samples <= 0) {
