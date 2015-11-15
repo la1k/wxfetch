@@ -44,14 +44,12 @@ typedef struct {
 	float *data;
 	int total_num_samples;
 	int current_start_position;
-	int current_end_position;
 	int current_num_samples;
 } buffer_t;
 
 void buffer_initialize(buffer_t *buffer, int tot_num_samples);
 int buffer_fill(buffer_t *buffer, int num_samples, float *samples);
 int buffer_read(buffer_t *buffer, int num_samples, float *samples);
-int buffer_length(buffer_t *buffer);
 
 int getpixelrow(apt_t *apt, float *pixelv);
 void apt_initialize(apt_t *apt);

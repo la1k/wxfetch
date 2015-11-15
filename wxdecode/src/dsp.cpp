@@ -213,7 +213,6 @@ void buffer_initialize(buffer_t *buffer, int tot_num_samples)
 	buffer->data = (float*)malloc(sizeof(float)*tot_num_samples);
 	buffer->total_num_samples = tot_num_samples;
 	buffer->current_start_position = 0;
-	buffer->current_end_position = 0;
 	buffer->current_num_samples = 0;
 }
 
@@ -256,46 +255,32 @@ int buffer_fill(buffer_t *buffer, int num_samples, float *samples)
 
 int buffer_read(buffer_t *buffer, int num_samples, float *samples)
 {
-	if (buffer_length(buffer) <= 0) {
+	if (buffer->current_num_samples <= 0) {
 		return 0;
 	}
 
-	int first_part_len = num_samples;
-	int second_part_len = 0;
-	int new_start_pos = (buffer->current_start_position + num_samples) % buffer->total_num_samples;
-	int new_end_pos = buffer->current_end_position;
-
-	if ((buffer->current_end_position < buffer->current_start_position) && (first_part_len > (buffer->total_num_samples - buffer->current_start_position))) {
-		first_part_len = buffer->total_num_samples - buffer->current_start_position;
-		second_part_len = num_samples - first_part_len;
-		new_start_pos = second_part_len;
-	} else if (first_part_len > (buffer->current_end_position - buffer->current_start_position)) {
-		first_part_len = buffer->current_end_position - buffer->current_start_position;
-		new_start_pos = 0;
-		new_end_pos = 0;
+	int read_samples = num_samples;
+	if (num_samples > buffer->current_num_samples) {
+		read_samples = buffer->current_num_samples;
 	}
-	if (second_part_len > buffer->current_end_position){
-		second_part_len = buffer->current_end_position;
-		new_start_pos = 0;
-		new_end_pos = 0;
+
+	int first_part_len = read_samples;
+	int second_part_len = 0;
+	if ((buffer->current_start_position + read_samples) > buffer->total_num_samples) {
+		first_part_len = buffer->total_num_samples - buffer->current_start_position;
+		second_part_len = read_samples - first_part_len;
 	}
 	
-	memcpy(samples, buffer->data + buffer->current_start_position, sizeof(float)*first_part_len);
+	if (first_part_len > 0) {
+		memcpy(samples, buffer->data + buffer->current_start_position, sizeof(float)*first_part_len);
+		buffer->current_num_samples -= first_part_len;
+		buffer->current_start_position = 0;
+	}
+
 	if (second_part_len > 0) {
 		memcpy(samples + first_part_len, buffer->data, sizeof(float)*second_part_len);
+		buffer->current_num_samples -= second_part_len;
+		buffer->current_start_position = second_part_len;
 	}
-	buffer->current_start_position = new_start_pos;
-	buffer->current_end_position = new_end_pos;
-
-}
-
-int buffer_length(buffer_t *buffer)
-{
-	int length = 0;
-	if (buffer->current_end_position < buffer->current_start_position) {
-		length = buffer->total_num_samples - buffer->current_start_position + buffer->current_end_position;
-	} else {
-		length = buffer->current_end_position - buffer->current_start_position;
-	}
-	return length;
+	return read_samples;
 }
