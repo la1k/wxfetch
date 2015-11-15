@@ -28,6 +28,18 @@
 #include "filtercoeff.h"
 #include "buffer.h"
 
+#define Fe 11025.0
+#define Fc 2400.0
+#define DFc 50.0
+#define Fp (2*PixelLine)
+#define RSMULT 10
+#define Fi (Fp*RSMULT)
+
+/* pll coeff */
+#define K1 5e-3
+#define K2 3e-6
+#define BLKIN 1024
+
 
 #include "dsp.h"
 
@@ -135,7 +147,7 @@ int getpixelv(buffer_t *sound_buffer, apt_t *apt, float *pvbuff, int nb)
 }
 
 
-int getpixelrow(buffer_t *sound_buffer, apt_t *apt, float *pixelv)
+int apt_decode(apt_t *apt, buffer_t *sound_buffer, float *pixelv)
 {
     double corr, ecorr, lcorr;
     int res;

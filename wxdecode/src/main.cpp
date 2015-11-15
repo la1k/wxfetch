@@ -86,25 +86,25 @@ int main(int argc, char **argv)
 	float sound_temp[11025];
 
 	bool finished = false;
+	float *pixel_data = new float[num_cols]();
 	while (!finished) {
 		//fill buffer with sound data
-		int read_samples = getsample(sound_temp, buffer_capacity(&sound_buffer));
-		cout << read_samples << endl;
+		int num_samples = buffer_capacity(&sound_buffer);
+		int read_samples = getsample(sound_temp, num_samples);
 		if (read_samples <= 0) {
 			break;
 		}
-		buffer_fill(&sound_buffer, buffer_capacity(&sound_buffer), sound_temp);
+		buffer_fill(&sound_buffer, read_samples, sound_temp);
 
-		float *pixel_data = new float[num_cols]();
-		int retval = getpixelrow(&sound_buffer, &apt, pixel_data);
-
-		finished = (retval == 0);
-
-		img.push_back(cv::Mat(1, num_cols, CV_32FC1, pixel_data).clone());
-		delete [] pixel_data;
+		//decode APT signal
+		int retval = apt_decode(&apt, &sound_buffer, pixel_data);
+		if (retval != 0) {
+			img.push_back(cv::Mat(1, num_cols, CV_32FC1, pixel_data).clone());
+		}
 	}
 	sf_close(inwav);
 
+	delete [] pixel_data;
 
 	imwrite("test.png", img);
 }
