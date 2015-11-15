@@ -19,6 +19,8 @@
 #define K2 3e-6
 #define BLKIN 1024
 
+#include "buffer.h"
+
 typedef struct {
 	double PhaseOsc;
 	double FreqOsc;
@@ -41,7 +43,7 @@ typedef struct {
 } apt_t;
 
 
-int getpixelrow(apt_t *apt, float *pixelv);
+int getpixelrow(buffer_t *sound_buffer, apt_t *apt, float *pixelv);
 void apt_initialize(apt_t *apt);
 
 #endif

@@ -38,5 +38,6 @@ float rsfir(float *buff,const float *coeff,const int len ,const double offset ,c
 void iqfir(float *buff,const float *Icoeff,const float *Qcoeff, const int len ,float *I, float *Q);
 float fir(float *buff,const float *coeff,const int len);
 double iir(double x,iirbuff_t *buff, const iircoeff_t *coeff);
+void iirbuff_initialize(iirbuff_t *buff);
 
 #endif

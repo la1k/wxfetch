@@ -70,6 +70,19 @@ rsfir(float *buff, const float *coeff, const int len, const double offset,
     } return out;
 }
 
+void iirbuff_initialize(iirbuff_t *buff)
+{
+	buff->x[0] = 0.0;
+	buff->x[1] = 0.0;
+	buff->x[2] = 0.0;
+	buff->x[3] = 0.0;
+	buff->x[4] = 0.0;
+
+	buff->y[0] = 0.0;
+	buff->y[1] = 0.0;
+	buff->y[2] = 0.0;
+}
+
 double iir(double x, iirbuff_t * buff, const iircoeff_t * coeff)
 {
     buff->x[4] = buff->x[3];

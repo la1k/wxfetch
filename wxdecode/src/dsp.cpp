@@ -26,19 +26,19 @@
 #endif				/*  */
 #include "filter.h"
 #include "filtercoeff.h"
+#include "buffer.h"
 
 
 #include "dsp.h"
-
-extern int getsample(float *inbuff, int nb);
-
-
 
 float pll_initialize(pll_t *pll_m){
 	pll_m->PhaseOsc = 0.0;
 	pll_m->FreqOsc = Fc / Fe;
 	pll_m->fr = Fc / Fe;
 	pll_m->FreqOsc = Fc / Fe;
+
+	iirbuff_initialize(&(pll_m->Ifilterbuff));
+	iirbuff_initialize(&(pll_m->Qfilterbuff));
 }
 
 static float pll(pll_t *pll_m, float In)
@@ -98,7 +98,7 @@ void apt_initialize(apt_t *apt)
 	pll_initialize(&apt->phaselock);
 }
 
-int getpixelv(apt_t *apt, float *pvbuff, int nb)
+int getpixelv(buffer_t *sound_buffer, apt_t *apt, float *pvbuff, int nb)
 {
     int n;
 
@@ -113,8 +113,8 @@ int getpixelv(apt_t *apt, float *pvbuff, int nb)
 
 	    float sound_buff[BLKAMP];
 	    int num_samples = BLKAMP - apt->nam;
-	    res = getsample(sound_buff, num_samples);
-	    getamp(&(apt->phaselock), &(apt->ambuff[apt->nam]), sound_buff, BLKAMP - apt->nam);
+	    res = buffer_read(sound_buffer, num_samples, sound_buff);
+	    getamp(&(apt->phaselock), &(apt->ambuff[apt->nam]), sound_buff, res);
 	    apt->nam += res;
 	    if (apt->nam < BLKAMP)
 		return (n);
@@ -135,7 +135,7 @@ int getpixelv(apt_t *apt, float *pvbuff, int nb)
 }
 
 
-int getpixelrow(apt_t *apt, float *pixelv)
+int getpixelrow(buffer_t *sound_buffer, apt_t *apt, float *pixelv)
 {
     double corr, ecorr, lcorr;
     int res;
@@ -143,7 +143,7 @@ int getpixelrow(apt_t *apt, float *pixelv)
     if (apt->npv > 0)
 	memmove(pixelv, apt->pixels, apt->npv * sizeof(float));
     if (apt->npv < SyncFilterLen + 2) {
-	res = getpixelv(apt, &(pixelv[apt->npv]), SyncFilterLen + 2 - apt->npv);
+	res = getpixelv(sound_buffer, apt, &(pixelv[apt->npv]), SyncFilterLen + 2 - apt->npv);
 	apt->npv += res;
 	if (apt->npv < SyncFilterLen + 2)
 	    return (0);
@@ -154,7 +154,7 @@ int getpixelrow(apt_t *apt, float *pixelv)
     ecorr = fir(pixelv, Sync, SyncFilterLen);
     lcorr = fir(&(pixelv[2]), Sync, SyncFilterLen);
     apt->FreqLine = 1.0 + (ecorr - lcorr) / corr / PixelLine / 4.0;
-    if (corr < 0.75 * apt->max) {
+    if (corr <= 0.75 * apt->max) {
 	apt->synced = 0;
 	apt->FreqLine = 1.0;
     }
@@ -164,7 +164,7 @@ int getpixelrow(apt_t *apt, float *pixelv)
 
 	if (apt->npv < PixelLine + SyncFilterLen) {
 	    res =
-		getpixelv(apt, &(pixelv[apt->npv]), PixelLine + SyncFilterLen - apt->npv);
+		getpixelv(sound_buffer, apt, &(pixelv[apt->npv]), PixelLine + SyncFilterLen - apt->npv);
 	    apt->npv += res;
 	    if (apt->npv < PixelLine + SyncFilterLen)
 		return (0);
@@ -191,7 +191,7 @@ int getpixelrow(apt_t *apt, float *pixelv)
 	    apt->synced += 1;
     }
     if (apt->npv < PixelLine) {
-	res = getpixelv(apt, &(pixelv[apt->npv]), PixelLine - apt->npv);
+	res = getpixelv(sound_buffer, apt, &(pixelv[apt->npv]), PixelLine - apt->npv);
 	apt->npv += res;
 	if (apt->npv < PixelLine)
 	    return (0);

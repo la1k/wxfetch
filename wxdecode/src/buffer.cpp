@@ -91,3 +91,8 @@ int buffer_read(buffer_t *buffer, int num_samples, float *samples)
 	
 	return read_samples;
 }
+
+int buffer_capacity(buffer_t *buffer)
+{
+	return buffer->total_num_samples - buffer->current_num_samples;
+}

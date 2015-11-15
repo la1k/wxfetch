@@ -30,6 +30,14 @@ void buffer_initialize(buffer_t *buffer, int tot_num_samples);
 void buffer_free(buffer_t *buffer);
 
 /**
+ * Get current capacity in buffer.
+ *
+ * \param buffer
+ * \return Available space
+ **/
+int buffer_capacity(buffer_t *buffer);
+
+/**
  * Write data to buffer in available space. 
  *
  * \param buffer Buffer

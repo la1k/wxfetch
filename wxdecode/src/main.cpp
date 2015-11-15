@@ -32,6 +32,9 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include "dsp.h"
+#include "buffer.h"
+#include <iostream>
+using namespace std;
 
 static SNDFILE *inwav;
 
@@ -65,6 +68,7 @@ int getsample(float *sample, int nb)
     return (sf_read_float(inwav, sample, nb));
 }
 
+
 int main(int argc, char **argv)
 {
 	if (initsnd(argv[1]))
@@ -77,17 +81,30 @@ int main(int argc, char **argv)
 	apt_t apt;
 	apt_initialize(&apt);
 
+	buffer_t sound_buffer;
+	buffer_initialize(&sound_buffer, 11025);
+	float sound_temp[11025];
 
 	bool finished = false;
 	while (!finished) {
+		//fill buffer with sound data
+		int read_samples = getsample(sound_temp, buffer_capacity(&sound_buffer));
+		cout << read_samples << endl;
+		if (read_samples <= 0) {
+			break;
+		}
+		buffer_fill(&sound_buffer, buffer_capacity(&sound_buffer), sound_temp);
+
 		float *pixel_data = new float[num_cols]();
-		int retval = getpixelrow(&apt, pixel_data);
+		int retval = getpixelrow(&sound_buffer, &apt, pixel_data);
+
 		finished = (retval == 0);
-		
+
 		img.push_back(cv::Mat(1, num_cols, CV_32FC1, pixel_data).clone());
 		delete [] pixel_data;
 	}
 	sf_close(inwav);
+
 
 	imwrite("test.png", img);
 }
