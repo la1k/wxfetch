@@ -274,7 +274,7 @@ int buffer_read(buffer_t *buffer, int num_samples, float *samples)
 	if (first_part_len > 0) {
 		memcpy(samples, buffer->data + buffer->current_start_position, sizeof(float)*first_part_len);
 		buffer->current_num_samples -= first_part_len;
-		buffer->current_start_position = 0;
+		buffer->current_start_position += first_part_len % buffer->total_num_samples;
 	}
 
 	if (second_part_len > 0) {
