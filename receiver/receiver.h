@@ -1,16 +1,21 @@
 #include <gnuradio/top_block.h>
-#include <osmosdr/source.h>
 #include <gnuradio/blocks/wavfile_sink.h>
+#include <gnuradio/basic_block.h>
+#include <gnuradio/qtgui/freq_sink_f.h>
 
-typedef struct{
-	osmosdr::source::sptr src;
+typedef struct {
+	gr::basic_block_sptr source_block;
 	gr::top_block_sptr top_block;
-	gr::blocks::wavfile_sink::sptr sink;
+
+	gr::qtgui::freq_sink_f::sptr freq_displayer;
 } receiver_t;
 
-void receiver_initialize(receiver_t *rec);
-void receiver_set_filename(receiver_t *rec, const char* filename);
-void receiver_set_frequency(receiver_t *rec, float freqv);
+enum receiver_type {
+	RECV_RTL_SDR,
+	RECV_AUDIOCARD
+};
+
+void receiver_initialize(receiver_t *receiver, enum receiver_type type);
 
 void receiver_start(receiver_t *rec);
 void receiver_stop(receiver_t *rec);
