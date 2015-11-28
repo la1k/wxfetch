@@ -7,7 +7,7 @@
 #include <unistd.h>
 #include <stdio.h>
 //#include "receiver.h"
-#include "tracker.h"
+#include <predict/predict.h>
 using namespace std;
 
 void wxsat_prepare(vector<predict_orbit_t*> *orbits, vector<float> *frequencies){
