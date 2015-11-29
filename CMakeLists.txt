@@ -5,7 +5,7 @@ project(wxfetch)
 add_executable(wxtrack wxtrack/main.cpp)
 TARGET_LINK_LIBRARIES(wxtrack predict)
 
-add_executable(receiver receiver/receiver.cpp receiver/alsa_rec.cpp)
+add_executable(receiver receiver/receiver.cpp receiver/main.cpp)
 FIND_PACKAGE(Qt4 REQUIRED)
 INCLUDE(${QT_USE_FILE})
 ADD_DEFINITIONS(${QT_DEFINITIONS})

@@ -10,6 +10,7 @@
 #include <gnuradio/filter/iir_filter_ffd.h>
 #include <gnuradio/filter/rational_resampler_base_fff.h>
 #include <gnuradio/blocks/multiply_const_ff.h>
+#include <gnuradio/blocks/wavfile_source.h>
 #include <osmosdr/source.h>
 #include <gnuradio/audio/source.h>
 #include <string>
@@ -27,6 +28,7 @@ void receiver_initialize(receiver_t *rec, enum receiver_type type){
 
 			//source
 			string dev_str = "rtl=0,rtl_xtal=0,tuner_xtal=0,buffers=32,buflen=256kB,direct_samp=2,offset_tune=0";
+
 			rec->source_block = osmosdr::source::make(dev_str);
 
 			////////////////////////////
@@ -87,12 +89,23 @@ void receiver_initialize(receiver_t *rec, enum receiver_type type){
 			audio_block = rec->source_block;
 		break;
 		}
+		case RECV_FIXED_FILE: {
+			rec->source_block = gr::blocks::wavfile_source::make("/home/asgeirbj/Downloads/090729 1428 noaa-18.wav", true);
+			audio_block = rec->source_block;
+		break;
+		}
 	}
 
-	rec->freq_displayer = gr::qtgui::freq_sink_f::make(500, 0, 500, 1, "Fjonkarnte");
+	int fft_size = 2000;
+	rec->freq_displayer = gr::qtgui::freq_sink_f::make(fft_size, gr::filter::firdes::WIN_HAMMING, 22500, 44100, "greier");
+	rec->freq_displayer->set_plot_pos_half(true);
+
+	rec->waterfall = gr::qtgui::waterfall_sink_f::make(fft_size, gr::filter::firdes::WIN_HAMMING, 22500, 44100, "waterfall");
+	rec->waterfall->set_plot_pos_half(true);
 
 	//connect blocks
 	rec->top_block->connect(audio_block, 0, rec->freq_displayer, 0);
+	rec->top_block->connect(audio_block, 0, rec->waterfall, 0);
 }
 
 void receiver_set_frequency(receiver_t *rec, float freqv){
