@@ -22,5 +22,7 @@
 ########################################################################
 install(FILES
     api.h
-    decode_ff.h DESTINATION include/apt
+    decode_ff.h
+    image_file_f.h
+    image_widget_f.h DESTINATION include/apt
 )

@@ -27,6 +27,8 @@ link_directories(${Boost_LIBRARY_DIRS})
 
 list(APPEND apt_sources
     decode_ff_impl.cc
+    image_file_f_impl.cc
+    image_widget_f_impl.cc
 )
 
 set(apt_sources "${apt_sources}" PARENT_SCOPE)

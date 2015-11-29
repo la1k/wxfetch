@@ -18,5 +18,7 @@
 # Boston, MA 02110-1301, USA.
 
 install(FILES
-    apt_decode_ff.xml DESTINATION share/gnuradio/grc/blocks
+    apt_decode_ff.xml
+    apt_image_file_f.xml
+    apt_image_widget_f.xml DESTINATION share/gnuradio/grc/blocks
 )
