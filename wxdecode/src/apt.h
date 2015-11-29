@@ -4,7 +4,7 @@
 #include "filter.h"
 
 #define BLKAMP 256
-#define PixelLine 2080
+#define NUM_PIXELS_IN_ROW 2080
 
 
 #include "buffer.h"
@@ -25,7 +25,7 @@ typedef struct {
 	pll_t phaselock_state; //state of the phaselock filter
 
 	//demodulated pixels left over from the last run
-	float leftover_pixels[PixelLine];
+	float leftover_pixels[NUM_PIXELS_IN_ROW];
 	int num_leftover_pixels;
 	
 	//weird variables

@@ -24,6 +24,7 @@
 
 #include <gnuradio/io_signature.h>
 #include "image_widget_f_impl.h"
+#include <apt.h>
 
 namespace gr {
   namespace apt {
@@ -42,7 +43,9 @@ namespace gr {
       : gr::sync_block("image_widget_f",
               gr::io_signature::make(1, 1, sizeof(float)),
               gr::io_signature::make(0, 0, 0))
-    {}
+    {
+      gr::block::set_output_multiple(NUM_PIXELS_IN_ROW);
+    }
 
     /*
      * Our virtual destructor.
