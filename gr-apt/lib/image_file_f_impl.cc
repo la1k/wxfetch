@@ -40,7 +40,7 @@ namespace gr {
      */
     image_file_f_impl::image_file_f_impl()
       : gr::sync_block("image_file_f",
-              gr::io_signature::make(<+MIN_IN+>, <+MAX_IN+>, sizeof(<+ITYPE+>)),
+              gr::io_signature::make(1, 1, sizeof(float)),
               gr::io_signature::make(0, 0, 0))
     {}
 
@@ -56,7 +56,7 @@ namespace gr {
 			  gr_vector_const_void_star &input_items,
 			  gr_vector_void_star &output_items)
     {
-        const <+ITYPE+> *in = (const <+ITYPE+> *) input_items[0];
+        const float *in = (const float*) input_items[0];
 
         // Do <+signal processing+>
 
