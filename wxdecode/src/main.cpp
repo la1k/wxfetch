@@ -87,6 +87,7 @@ int main(int argc, char **argv)
 
 	bool finished = false;
 	float *pixel_data = new float[num_cols]();
+	int max_consumed_samples = -1;
 	while (!finished) {
 		//fill buffer with sound data
 		int num_samples = buffer_capacity(&sound_buffer);
@@ -95,6 +96,7 @@ int main(int argc, char **argv)
 			break;
 		}
 		buffer_fill(&sound_buffer, read_samples, sound_temp);
+		int length = buffer_length(&sound_buffer);
 
 		//decode APT signal
 		int retval = apt_decode(&apt, &sound_buffer, pixel_data);
@@ -103,6 +105,11 @@ int main(int argc, char **argv)
 
 			cv::imshow("test", img/255);
 			cv::waitKey(5);
+		}
+		int consumed_samples = length - buffer_length(&sound_buffer);
+		if (consumed_samples > max_consumed_samples){
+			max_consumed_samples = consumed_samples;
+			cout << "Consumed samples: " << consumed_samples << endl;
 		}
 	}
 	sf_close(inwav);

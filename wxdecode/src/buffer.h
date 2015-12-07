@@ -38,6 +38,14 @@ void buffer_free(buffer_t *buffer);
 int buffer_capacity(buffer_t *buffer);
 
 /**
+ * Get current length of buffer.
+ *
+ * \param buffer
+ * \return length
+ **/
+int buffer_length(buffer_t *buffer);
+
+/**
  * Write data to buffer in available space. 
  *
  * \param buffer Buffer
@@ -45,7 +53,7 @@ int buffer_capacity(buffer_t *buffer);
  * \param samples Input data
  * \return Number of written samples
  **/
-int buffer_fill(buffer_t *buffer, int num_samples, float *samples);
+int buffer_fill(buffer_t *buffer, int num_samples, const float *samples);
 
 /**
  * Read data from buffer. The read data is removed from the buffer.

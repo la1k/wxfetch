@@ -22,6 +22,7 @@
 #define INCLUDED_APT_DECODE_FF_IMPL_H
 
 #include <apt/decode_ff.h>
+#include <apt.h>
 
 namespace gr {
   namespace apt {
@@ -29,7 +30,9 @@ namespace gr {
     class decode_ff_impl : public decode_ff
     {
      private:
-      // Nothing to declare in this block.
+      buffer_t d_signal_buffer;
+      buffer_t d_image_buffer;
+      apt_t apt;
 
      public:
       decode_ff_impl();

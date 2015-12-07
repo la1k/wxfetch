@@ -3,6 +3,8 @@
 #include <gnuradio/basic_block.h>
 #include <gnuradio/qtgui/freq_sink_f.h>
 #include <gnuradio/qtgui/waterfall_sink_f.h>
+#include <apt/image_widget_f.h>
+#include <apt/decode_ff.h>
 
 typedef struct {
 	gr::basic_block_sptr source_block;
@@ -10,6 +12,9 @@ typedef struct {
 
 	gr::qtgui::freq_sink_f::sptr freq_displayer;
 	gr::qtgui::waterfall_sink_f::sptr waterfall;
+	
+	gr::apt::decode_ff::sptr wx_decoder;
+	gr::apt::image_widget_f::sptr wx_widget;
 } receiver_t;
 
 enum receiver_type {

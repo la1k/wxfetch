@@ -12,7 +12,7 @@ void buffer_initialize(buffer_t *buffer, int tot_num_samples)
 	pthread_mutex_init(&(buffer->mutex), NULL);
 }
 
-int buffer_fill(buffer_t *buffer, int num_samples, float *samples)
+int buffer_fill(buffer_t *buffer, int num_samples, const float *samples)
 {
 	pthread_mutex_lock(&(buffer->mutex));
 
@@ -95,4 +95,9 @@ int buffer_read(buffer_t *buffer, int num_samples, float *samples)
 int buffer_capacity(buffer_t *buffer)
 {
 	return buffer->total_num_samples - buffer->current_num_samples;
+}
+
+int buffer_length(buffer_t *buffer)
+{
+	return buffer->current_num_samples;
 }

@@ -24,7 +24,10 @@
 
 #include <gnuradio/io_signature.h>
 #include "image_widget_f_impl.h"
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
 #include <apt.h>
+#include <iostream>
 
 namespace gr {
   namespace apt {
@@ -61,9 +64,25 @@ namespace gr {
     {
         const float *in = (const float*) input_items[0];
 
-        // Do <+signal processing+>
+	float *img_data = new float[noutput_items]();
+	memcpy(img_data, in, sizeof(float)*noutput_items);
 
-        // Tell runtime system how many output items we produced.
+	int num_rows = noutput_items/NUM_PIXELS_IN_ROW;
+	for (int i=0; i < num_rows; i++) {
+		cv::Mat row(1, NUM_PIXELS_IN_ROW, CV_32FC1, img_data + i*NUM_PIXELS_IN_ROW);
+		d_img.push_back(row.clone());
+	}
+
+	
+	delete [] img_data;
+
+	cv::Mat displayed_img = d_img.clone();
+	cv::resize(displayed_img, displayed_img, cv::Size(768, 1000));
+
+	cv::imshow("test", displayed_img/255);
+
+	consume_each(noutput_items);
+
         return noutput_items;
     }
 

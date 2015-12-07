@@ -9,11 +9,15 @@
 #include <gnuradio/filter/fir_filter_fff.h>
 #include <gnuradio/filter/iir_filter_ffd.h>
 #include <gnuradio/filter/rational_resampler_base_fff.h>
+#include <gnuradio/filter/fractional_resampler_ff.h>
 #include <gnuradio/blocks/multiply_const_ff.h>
 #include <gnuradio/blocks/wavfile_source.h>
 #include <osmosdr/source.h>
 #include <gnuradio/audio/source.h>
+#include <gnuradio/audio/sink.h>
 #include <string>
+#include <iostream>
+#include <QWidget>
 using namespace std;
 
 void receiver_initialize(receiver_t *rec, enum receiver_type type){
@@ -21,6 +25,8 @@ void receiver_initialize(receiver_t *rec, enum receiver_type type){
 
 	//output audio
 	gr::basic_block_sptr audio_block;
+	int input_rate = 0;
+
 
 	switch (type) {
 		case RECV_RTL_SDR: {
@@ -79,33 +85,51 @@ void receiver_initialize(receiver_t *rec, enum receiver_type type){
 			rec->top_block->connect(fm_deemph, 0, resamp_441khz, 0);
 			rec->top_block->connect(resamp_441khz, 0, resamp_11025k, 0);
 			rec->top_block->connect(resamp_11025k, 0, mult_const, 0);
+			input_rate = 11025;
 
 			audio_block = mult_const;
 		break;
 		}
 		case RECV_AUDIOCARD: {
-			int sample_rate = 44100;
-			rec->source_block = gr::audio::source::make(sample_rate, "default:CARD=PCH");
+			input_rate = 44100;
+			rec->source_block = gr::audio::source::make(input_rate, "default:CARD=PCH");
 			audio_block = rec->source_block;
 		break;
 		}
 		case RECV_FIXED_FILE: {
-			rec->source_block = gr::blocks::wavfile_source::make("/home/asgeirbj/Downloads/090729 1428 noaa-18.wav", true);
+			gr::blocks::wavfile_source::sptr wavfile_source = gr::blocks::wavfile_source::make("/home/asgeirbj/Downloads/090729 1428 noaa-18.wav", true);
+			rec->source_block = wavfile_source;
 			audio_block = rec->source_block;
+			input_rate = wavfile_source->sample_rate();
 		break;
 		}
 	}
 
+	//frequency displayer
 	int fft_size = 2000;
 	rec->freq_displayer = gr::qtgui::freq_sink_f::make(fft_size, gr::filter::firdes::WIN_HAMMING, 22500, 44100, "greier");
 	rec->freq_displayer->set_plot_pos_half(true);
 
+	//waterfall display
 	rec->waterfall = gr::qtgui::waterfall_sink_f::make(fft_size, gr::filter::firdes::WIN_HAMMING, 22500, 44100, "waterfall");
 	rec->waterfall->set_plot_pos_half(true);
+
+	//APT decoding
+	rec->wx_decoder = gr::apt::decode_ff::make();
+	rec->wx_widget = gr::apt::image_widget_f::make();
+
+	//audiocard sink
+	unsigned int output_rate = 44100;
+	gr::filter::fractional_resampler_ff::sptr resampler = gr::filter::fractional_resampler_ff::make(0, input_rate/(1.0f*output_rate)); 
+	gr::audio::sink::sptr audio_sink = gr::audio::sink::make(output_rate, "default:CARD=PCH", true);
 
 	//connect blocks
 	rec->top_block->connect(audio_block, 0, rec->freq_displayer, 0);
 	rec->top_block->connect(audio_block, 0, rec->waterfall, 0);
+	rec->top_block->connect(audio_block, 0, rec->wx_decoder, 0);
+	rec->top_block->connect(audio_block, 0, resampler, 0);
+	rec->top_block->connect(resampler, 0, audio_sink, 0);
+	rec->top_block->connect(rec->wx_decoder, 0, rec->wx_widget, 0);
 }
 
 void receiver_set_frequency(receiver_t *rec, float freqv){

@@ -25,6 +25,8 @@
 #include <gnuradio/io_signature.h>
 #include "decode_ff_impl.h"
 
+#define SAMPLE_RATE 11025
+
 namespace gr {
   namespace apt {
 
@@ -42,19 +44,25 @@ namespace gr {
       : gr::block("decode_ff",
               gr::io_signature::make(1, 1, sizeof(float)),
               gr::io_signature::make(1, 1, sizeof(float)))
-    {}
+    {
+	    buffer_initialize(&d_signal_buffer, SAMPLE_RATE);
+	    buffer_initialize(&d_image_buffer, NUM_PIXELS_IN_ROW*2);
+	    apt_initialize(&apt);
+    }
 
     /*
      * Our virtual destructor.
      */
     decode_ff_impl::~decode_ff_impl()
     {
+	    buffer_free(&d_signal_buffer);
+	    buffer_free(&d_image_buffer);
     }
 
     void
     decode_ff_impl::forecast (int noutput_items, gr_vector_int &ninput_items_required)
     {
-        /* <+forecast+> e.g. ninput_items_required[0] = noutput_items */
+	ninput_items_required[0] = noutput_items;
     }
 
     int
@@ -66,13 +74,25 @@ namespace gr {
         const float *in = (const float *) input_items[0];
         float *out = (float*) output_items[0];
 
-        // Do <+signal processing+>
-        // Tell runtime system how many input items we consumed on
-        // each input stream.
-        consume_each (noutput_items);
+	int decoded_samples = 0;
+	int written_samples = buffer_fill(&d_signal_buffer, noutput_items, in);
 
-        // Tell runtime system how many output items we produced.
-        return noutput_items;
+	if (written_samples < noutput_items) {
+		float pixel_data[NUM_PIXELS_IN_ROW] = {0};
+		int retval = apt_decode(&apt, &d_signal_buffer, pixel_data);
+		std::cout << "retval, apt: " << retval << std::endl;
+
+		if (retval != 0) {
+			buffer_fill(&d_image_buffer, NUM_PIXELS_IN_ROW, pixel_data);
+		}
+	}
+
+	int read_values = buffer_read(&d_image_buffer, noutput_items, out);
+	std::cout << "read pixel data: " << read_values << std::endl;
+
+        consume_each (written_samples);
+
+        return read_values;
     }
 
   } /* namespace apt */
