@@ -68,8 +68,10 @@ namespace gr {
         const float *in = (const float *) input_items[0];
         float *out = (float*) output_items[0];
 
+	//write to buffer
 	int written_samples = buffer_fill(&d_signal_buffer, ninput_items[0], in);
 
+	//start decoding when buffer is filled
 	if (written_samples < ninput_items[0]) {
 		float pixel_data[NUM_PIXELS_IN_ROW] = {0};
 		int retval = apt_decode(&d_apt, &d_signal_buffer, pixel_data);
@@ -78,11 +80,11 @@ namespace gr {
 			buffer_fill(&d_image_buffer, NUM_PIXELS_IN_ROW, pixel_data);
 		}
 	}
-
-	int read_values = buffer_read(&d_image_buffer, noutput_items, out);
-
         consume_each (written_samples);
-        return read_values;
+
+	//check pixel buffer for possible output
+	int num_generated_pixels = buffer_read(&d_image_buffer, noutput_items, out);
+        return num_generated_pixels;
     }
 
   } /* namespace apt */
