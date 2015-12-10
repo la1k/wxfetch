@@ -39,9 +39,6 @@ namespace gr {
         (new image_widget_f_impl());
     }
 
-    /*
-     * The private constructor
-     */
     image_widget_f_impl::image_widget_f_impl()
       : gr::sync_block("image_widget_f",
               gr::io_signature::make(1, 1, sizeof(float)),
@@ -50,9 +47,6 @@ namespace gr {
       gr::block::set_output_multiple(NUM_PIXELS_IN_ROW);
     }
 
-    /*
-     * Our virtual destructor.
-     */
     image_widget_f_impl::~image_widget_f_impl()
     {
     }
@@ -64,26 +58,22 @@ namespace gr {
     {
         const float *in = (const float*) input_items[0];
 
+	//generate cv::Mat from input data
 	float *img_data = new float[noutput_items]();
 	memcpy(img_data, in, sizeof(float)*noutput_items);
-
 	int num_rows = noutput_items/NUM_PIXELS_IN_ROW;
-	for (int i=0; i < num_rows; i++) {
-		cv::Mat row(1, NUM_PIXELS_IN_ROW, CV_32FC1, img_data + i*NUM_PIXELS_IN_ROW);
-		d_img.push_back(row.clone());
-	}
-
-	
+	int displayed_elements = num_rows*NUM_PIXELS_IN_ROW;
+	cv::Mat rows(num_rows, NUM_PIXELS_IN_ROW, CV_32FC1, img_data);
+	d_img.push_back(rows.clone());
 	delete [] img_data;
 
+	//display image data
 	cv::Mat displayed_img = d_img.clone();
 	cv::resize(displayed_img, displayed_img, cv::Size(768, 1000));
-
 	cv::imshow("test", displayed_img/255);
 
 	consume_each(noutput_items);
-
-        return noutput_items;
+        return 0;
     }
 
   } /* namespace apt */

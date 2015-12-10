@@ -37,9 +37,6 @@ namespace gr {
         (new decode_ff_impl());
     }
 
-    /*
-     * The private constructor
-     */
     decode_ff_impl::decode_ff_impl()
       : gr::block("decode_ff",
               gr::io_signature::make(1, 1, sizeof(float)),
@@ -47,12 +44,9 @@ namespace gr {
     {
 	    buffer_initialize(&d_signal_buffer, SAMPLE_RATE);
 	    buffer_initialize(&d_image_buffer, NUM_PIXELS_IN_ROW*2);
-	    apt_initialize(&apt);
+	    apt_initialize(&d_apt);
     }
 
-    /*
-     * Our virtual destructor.
-     */
     decode_ff_impl::~decode_ff_impl()
     {
 	    buffer_free(&d_signal_buffer);
@@ -74,13 +68,11 @@ namespace gr {
         const float *in = (const float *) input_items[0];
         float *out = (float*) output_items[0];
 
-	int decoded_samples = 0;
-	int written_samples = buffer_fill(&d_signal_buffer, noutput_items, in);
+	int written_samples = buffer_fill(&d_signal_buffer, ninput_items[0], in);
 
-	if (written_samples < noutput_items) {
+	if (written_samples < ninput_items[0]) {
 		float pixel_data[NUM_PIXELS_IN_ROW] = {0};
-		int retval = apt_decode(&apt, &d_signal_buffer, pixel_data);
-		std::cout << "retval, apt: " << retval << std::endl;
+		int retval = apt_decode(&d_apt, &d_signal_buffer, pixel_data);
 
 		if (retval != 0) {
 			buffer_fill(&d_image_buffer, NUM_PIXELS_IN_ROW, pixel_data);
@@ -88,10 +80,8 @@ namespace gr {
 	}
 
 	int read_values = buffer_read(&d_image_buffer, noutput_items, out);
-	std::cout << "read pixel data: " << read_values << std::endl;
 
         consume_each (written_samples);
-
         return read_values;
     }
 

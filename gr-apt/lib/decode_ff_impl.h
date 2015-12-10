@@ -32,15 +32,13 @@ namespace gr {
      private:
       buffer_t d_signal_buffer;
       buffer_t d_image_buffer;
-      apt_t apt;
+      apt_t d_apt;
 
      public:
       decode_ff_impl();
       ~decode_ff_impl();
 
-      // Where all the action really happens
       void forecast (int noutput_items, gr_vector_int &ninput_items_required);
-
       int general_work(int noutput_items,
 		       gr_vector_int &ninput_items,
 		       gr_vector_const_void_star &input_items,
