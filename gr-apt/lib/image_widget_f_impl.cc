@@ -24,6 +24,7 @@
 
 #include <gnuradio/io_signature.h>
 #include "image_widget_f_impl.h"
+#include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <apt.h>
@@ -65,11 +66,22 @@ namespace gr {
 	int num_rows = noutput_items/NUM_PIXELS_IN_ROW;
 	int displayed_elements = num_rows*NUM_PIXELS_IN_ROW;
 	cv::Mat rows(num_rows, NUM_PIXELS_IN_ROW, CV_32FC1, img_data);
-	d_img.push_back(rows.clone());
 	delete [] img_data;
 
+	//convert to RGB-format grayscale image
+	cv::Mat uchar_image;
+	rows.convertTo(uchar_image, CV_8UC1);
+
+	std::vector<cv::Mat> channels;
+	channels.push_back(uchar_image.clone());
+	channels.push_back(uchar_image.clone());
+	channels.push_back(uchar_image.clone());
+	
+	cv::Mat rgb_img;
+	cv::merge(channels, rgb_img);
+
 	//display image data
-	imageViewer->updateImage_fromNonGUI(d_img.clone());
+	imageViewer->updateImage_fromNonGUI(rgb_img.clone());
 
 	consume_each(noutput_items);
         return 0;

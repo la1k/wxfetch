@@ -22,7 +22,6 @@
 #define INCLUDED_APT_IMAGE_WIDGET_F_IMPL_H
 
 #include <apt/image_widget_f.h>
-#include <opencv2/core/core.hpp>
 #include "image_viewer.h"
 
 namespace gr {
@@ -30,7 +29,6 @@ namespace gr {
     class image_widget_f_impl : public image_widget_f
     {
      private:
-      cv::Mat d_img;
       ImageViewer *imageViewer;
 
      public:

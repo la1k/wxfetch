@@ -36,35 +36,16 @@ void ImageViewer::updateImage_fromNonGUI(cv::Mat image){
 }
 
 void ImageViewer::updateImage(cv::Mat image){
-	d_curr_image = QImage(image.cols, image.rows, QImage::Format_RGB888);
-	d_curr_image.fill(255);
-
-	//convert incoming image data to something acceptable for QImage
-	cv::Mat uchar_image;
-	image.convertTo(uchar_image, CV_8UC1);
-
-	std::vector<cv::Mat> channels;
-	channels.push_back(uchar_image.clone());
-	channels.push_back(uchar_image.clone());
-	channels.push_back(uchar_image.clone());
-
-	cv::Mat rgb_img;
-	cv::merge(channels, rgb_img);
-
-	//copy to internal QImage data
-	memcpy(d_curr_image.bits(), rgb_img.data, sizeof(uchar)*image.rows*image.cols*3);
+	//append image data
+	d_image.push_back(image);
 	update();
 }
 
 void ImageViewer::paintEvent(QPaintEvent *evt){
 	Q_UNUSED(evt);
 
-	if (!d_curr_image.isNull()){
-		//scale QImage to current widget size
-		QImage resImage = d_curr_image.scaledToWidth(d_scroll_area->size().width());
-
-		//update label with current pixmap
-		this->d_image_label->setPixmap(QPixmap::fromImage(resImage));
-		this->d_image_label->adjustSize();
-	}
+	//update displayed image
+	QImage image((uchar*)d_image.data, d_image.cols, d_image.rows, d_image.step, QImage::Format_RGB888);
+	this->d_image_label->setPixmap(QPixmap::fromImage(image.scaledToWidth(d_scroll_area->size().width())));
+	this->d_image_label->adjustSize();
 }
