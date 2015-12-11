@@ -16,13 +16,13 @@ using namespace std;
 
 ImageViewer::ImageViewer(QWidget *parent): QWidget(parent){
 	QGridLayout *layout = new QGridLayout(this);
-	scrollArea = new QScrollArea;
-	layout->addWidget(scrollArea, 1, 0, 1, 2);
-	imageLabel = new QLabel;
-	imageLabel->setBackgroundRole(QPalette::Base);
-	imageLabel->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
-	scrollArea->setWidget(imageLabel);
-	imageLabel->setScaledContents(true);
+	d_scroll_area = new QScrollArea;
+	layout->addWidget(d_scroll_area, 1, 0, 1, 2);
+	d_image_label = new QLabel;
+	d_image_label->setBackgroundRole(QPalette::Base);
+	d_image_label->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
+	d_scroll_area->setWidget(d_image_label);
+	d_image_label->setScaledContents(true);
 	
 	connect(this, SIGNAL(updateImage_fromNonGUI_toGUI(cv::Mat)), SLOT(updateImage(cv::Mat)));
 	qRegisterMetaType<cv::Mat>("cv::Mat");
@@ -36,8 +36,8 @@ void ImageViewer::updateImage_fromNonGUI(cv::Mat image){
 }
 
 void ImageViewer::updateImage(cv::Mat image){
-	currImage = QImage(image.cols, image.rows, QImage::Format_RGB888);
-	currImage.fill(255);
+	d_curr_image = QImage(image.cols, image.rows, QImage::Format_RGB888);
+	d_curr_image.fill(255);
 	
 	cv::Mat uchar_image;
 	image.convertTo(uchar_image, CV_8UC1);
@@ -50,19 +50,19 @@ void ImageViewer::updateImage(cv::Mat image){
 	cv::Mat rgb_img;
 	cv::merge(channels, rgb_img);
 
-	memcpy(currImage.bits(), rgb_img.data, sizeof(uchar)*image.rows*image.cols*3);
+	memcpy(d_curr_image.bits(), rgb_img.data, sizeof(uchar)*image.rows*image.cols*3);
 	update();
 }
 
 void ImageViewer::paintEvent(QPaintEvent *evt){
 	Q_UNUSED(evt);
 
-	if (!currImage.isNull()){
+	if (!d_curr_image.isNull()){
 		//scale QImage to current widget size
-		QImage resImage = currImage.scaledToWidth(size().width());
+		QImage resImage = d_curr_image.scaledToWidth(size().width());
 
 		//update label with current pixmap
-		this->imageLabel->setPixmap(QPixmap::fromImage(resImage));
-		this->imageLabel->adjustSize();
+		this->d_image_label->setPixmap(QPixmap::fromImage(resImage));
+		this->d_image_label->adjustSize();
 	}
 }

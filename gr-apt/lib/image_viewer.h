@@ -24,18 +24,18 @@ class ImageViewer : public QWidget{
 		ImageViewer(QWidget *parent = NULL);
 		~ImageViewer();
 
-		//update displayed image from non-gui thread
+		//update displayed image with new image from non-gui thread
 		void updateImage_fromNonGUI(cv::Mat image);
 	protected:
 		void paintEvent(QPaintEvent *evt);
 
 	private slots:
-		void updateImage(cv::Mat image); //update image from within the gui thread. Never call this directly from any other thread than the GUI thread.
+		void updateImage(cv::Mat image); 
 
 	private:
-		QScrollArea *scrollArea; //scrolling the image
-		QLabel *imageLabel; //label containg image
-		QImage currImage; //currImage always contains latest image
+		QScrollArea *d_scroll_area; //contains the image
+		QLabel *d_image_label; //displayed image
+		QImage d_curr_image; //container for current image data
 	
 	signals:
 		void updateImage_fromNonGUI_toGUI(cv::Mat image);
