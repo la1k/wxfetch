@@ -23,18 +23,20 @@
 
 #include <apt/image_widget_f.h>
 #include <opencv2/core/core.hpp>
+#include "image_viewer.h"
 
 namespace gr {
   namespace apt {
-
     class image_widget_f_impl : public image_widget_f
     {
      private:
       cv::Mat d_img;
+      ImageViewer *imageViewer;
 
      public:
       image_widget_f_impl();
       ~image_widget_f_impl();
+      virtual QWidget* qwidget(){return imageViewer;};
 
       int work(int noutput_items,
 	       gr_vector_const_void_star &input_items,

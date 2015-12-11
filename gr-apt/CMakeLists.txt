@@ -63,6 +63,13 @@ if(NOT Boost_FOUND)
     message(FATAL_ERROR "Boost required to compile apt")
 endif()
 
+#######
+# Qt4
+#######
+
+find_package(Qt4 4.2.0 COMPONENTS QtCore QtGui)
+
+
 ########################################################################
 # Install directories
 ########################################################################

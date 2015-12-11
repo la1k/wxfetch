@@ -17,6 +17,15 @@
 # the Free Software Foundation, Inc., 51 Franklin Street,
 # Boston, MA 02110-1301, USA.
 
+
+################################
+# Setup QT file generation
+################################
+
+set(qtgui_moc_hdrs image_viewer.h)
+QT4_WRAP_CPP(qtgui_moc_sources ${qtgui_moc_hdrs})
+
+
 ########################################################################
 # Setup library
 ########################################################################
@@ -29,6 +38,8 @@ list(APPEND apt_sources
     decode_ff_impl.cc
     image_file_f_impl.cc
     image_widget_f_impl.cc
+    image_viewer.cpp
+    ${qtgui_moc_sources}
 )
 
 set(apt_sources "${apt_sources}" PARENT_SCOPE)
@@ -38,7 +49,7 @@ if(NOT apt_sources)
 endif(NOT apt_sources)
 
 add_library(gnuradio-apt SHARED ${apt_sources})
-target_link_libraries(gnuradio-apt ${Boost_LIBRARIES} ${GNURADIO_ALL_LIBRARIES} ${OpenCV_LIBRARIES} ${wxdecode_LIBRARIES})
+target_link_libraries(gnuradio-apt ${Boost_LIBRARIES} ${GNURADIO_ALL_LIBRARIES} ${OpenCV_LIBRARIES} ${wxdecode_LIBRARIES} ${QT_LIBRARIES})
 set_target_properties(gnuradio-apt PROPERTIES DEFINE_SYMBOL "gnuradio_apt_EXPORTS")
 
 if(APPLE)

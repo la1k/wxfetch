@@ -45,6 +45,7 @@ namespace gr {
               gr::io_signature::make(0, 0, 0))
     {
       gr::block::set_output_multiple(NUM_PIXELS_IN_ROW);
+      imageViewer = new ImageViewer;
     }
 
     image_widget_f_impl::~image_widget_f_impl()
@@ -68,9 +69,7 @@ namespace gr {
 	delete [] img_data;
 
 	//display image data
-	cv::Mat displayed_img = d_img.clone();
-	cv::resize(displayed_img, displayed_img, cv::Size(768, 1000));
-	cv::imshow("test", displayed_img/255);
+	imageViewer->updateImage_fromNonGUI(d_img.clone());
 
 	consume_each(noutput_items);
         return 0;

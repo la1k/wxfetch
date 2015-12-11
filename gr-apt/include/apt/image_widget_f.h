@@ -25,6 +25,8 @@
 #include <apt/api.h>
 #include <gnuradio/sync_block.h>
 
+class QWidget;
+
 namespace gr {
   namespace apt {
 
@@ -37,6 +39,7 @@ namespace gr {
     {
      public:
       typedef boost::shared_ptr<image_widget_f> sptr;
+      virtual QWidget* qwidget() = 0;
 
       /*!
        * \brief Return a shared_ptr to a new instance of apt::image_widget_f.
