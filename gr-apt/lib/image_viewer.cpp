@@ -14,7 +14,8 @@
 #include <iostream>
 using namespace std;
 
-ImageViewer::ImageViewer(QWidget *parent): QWidget(parent){
+ImageViewer::ImageViewer(QWidget *parent) : QWidget(parent){
+	//layout
 	QGridLayout *layout = new QGridLayout(this);
 	d_scroll_area = new QScrollArea;
 	layout->addWidget(d_scroll_area, 1, 0, 1, 2);
@@ -23,22 +24,22 @@ ImageViewer::ImageViewer(QWidget *parent): QWidget(parent){
 	d_image_label->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
 	d_scroll_area->setWidget(d_image_label);
 	d_image_label->setScaledContents(true);
-	
+
+	//connection
 	connect(this, SIGNAL(updateImage_fromNonGUI_toGUI(cv::Mat)), SLOT(updateImage(cv::Mat)));
 	qRegisterMetaType<cv::Mat>("cv::Mat");
 }
 
-ImageViewer::~ImageViewer(){
-}
-
 void ImageViewer::updateImage_fromNonGUI(cv::Mat image){
+	//signal to GUI thread that the image should be updated
 	emit updateImage_fromNonGUI_toGUI(image.clone());
 }
 
 void ImageViewer::updateImage(cv::Mat image){
 	d_curr_image = QImage(image.cols, image.rows, QImage::Format_RGB888);
 	d_curr_image.fill(255);
-	
+
+	//convert incoming image data to something acceptable for QImage
 	cv::Mat uchar_image;
 	image.convertTo(uchar_image, CV_8UC1);
 
@@ -50,6 +51,7 @@ void ImageViewer::updateImage(cv::Mat image){
 	cv::Mat rgb_img;
 	cv::merge(channels, rgb_img);
 
+	//copy to internal QImage data
 	memcpy(d_curr_image.bits(), rgb_img.data, sizeof(uchar)*image.rows*image.cols*3);
 	update();
 }
@@ -59,7 +61,7 @@ void ImageViewer::paintEvent(QPaintEvent *evt){
 
 	if (!d_curr_image.isNull()){
 		//scale QImage to current widget size
-		QImage resImage = d_curr_image.scaledToWidth(size().width());
+		QImage resImage = d_curr_image.scaledToWidth(d_scroll_area->size().width());
 
 		//update label with current pixmap
 		this->d_image_label->setPixmap(QPixmap::fromImage(resImage));

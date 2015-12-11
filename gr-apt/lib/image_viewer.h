@@ -18,11 +18,10 @@
 
 class QImage;
 
-class ImageViewer : public QWidget{
+class ImageViewer : public QWidget {
 	Q_OBJECT
 	public:
 		ImageViewer(QWidget *parent = NULL);
-		~ImageViewer();
 
 		//update displayed image with new image from non-gui thread
 		void updateImage_fromNonGUI(cv::Mat image);
