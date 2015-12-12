@@ -5,6 +5,7 @@
 #include <gnuradio/qtgui/waterfall_sink_f.h>
 #include <apt/image_widget_f.h>
 #include <apt/decode_ff.h>
+#include <string>
 
 typedef struct {
 	gr::basic_block_sptr source_block;
@@ -23,7 +24,7 @@ enum receiver_type {
 	RECV_FIXED_FILE
 };
 
-void receiver_initialize(receiver_t *receiver, enum receiver_type type);
+void receiver_initialize(receiver_t *receiver, enum receiver_type type, std::string device_string);
 
 void receiver_start(receiver_t *rec);
 void receiver_stop(receiver_t *rec);

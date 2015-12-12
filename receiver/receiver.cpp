@@ -20,7 +20,7 @@
 #include <QWidget>
 using namespace std;
 
-void receiver_initialize(receiver_t *rec, enum receiver_type type){
+void receiver_initialize(receiver_t *rec, enum receiver_type type, std::string device_string){
 	rec->top_block = gr::make_top_block("");
 
 	//output audio
@@ -31,11 +31,7 @@ void receiver_initialize(receiver_t *rec, enum receiver_type type){
 	switch (type) {
 		case RECV_RTL_SDR: {
 			//based on flow graph found on http://websterling.com/tsro/apt/
-
-			//source
-			string dev_str = "rtl=0,rtl_xtal=0,tuner_xtal=0,buffers=32,buflen=256kB,direct_samp=2,offset_tune=0";
-
-			rec->source_block = osmosdr::source::make(dev_str);
+			rec->source_block = osmosdr::source::make(device_string);
 
 			////////////////////////////
 			// PRE-PROCESSING FILTERS //
@@ -92,12 +88,12 @@ void receiver_initialize(receiver_t *rec, enum receiver_type type){
 		}
 		case RECV_AUDIOCARD: {
 			input_rate = 44100;
-			rec->source_block = gr::audio::source::make(input_rate, "default:CARD=PCH");
+			rec->source_block = gr::audio::source::make(input_rate, device_string);
 			audio_block = rec->source_block;
 		break;
 		}
 		case RECV_FIXED_FILE: {
-			gr::blocks::wavfile_source::sptr wavfile_source = gr::blocks::wavfile_source::make("/home/asgeirbj/Downloads/090729 1428 noaa-18.wav", true);
+			gr::blocks::wavfile_source::sptr wavfile_source = gr::blocks::wavfile_source::make(device_string.c_str(), true);
 			rec->source_block = wavfile_source;
 			audio_block = rec->source_block;
 			input_rate = wavfile_source->sample_rate();

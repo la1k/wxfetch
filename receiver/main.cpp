@@ -4,7 +4,7 @@ using namespace std;
 
 int main(int argc, char *argv[]){
 	receiver_t receiver;
-	receiver_initialize(&receiver, RECV_FIXED_FILE);
+	receiver_initialize(&receiver, RECV_FIXED_FILE, "/home/asgeirbj/Downloads/090729 1428 noaa-18.wav");
 	receiver_start(&receiver);
 
 	receiver.freq_displayer->d_qApplication = new QApplication(argc, argv);
