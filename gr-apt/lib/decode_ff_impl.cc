@@ -43,7 +43,7 @@ namespace gr {
               gr::io_signature::make(1, 1, sizeof(float)))
     {
 	    buffer_initialize(&d_signal_buffer, SAMPLE_RATE);
-	    buffer_initialize(&d_image_buffer, NUM_PIXELS_IN_ROW*2);
+	    buffer_initialize(&d_image_buffer, APT_IMG_WIDTH*2);
 	    apt_initialize(&d_apt);
     }
 
@@ -73,11 +73,11 @@ namespace gr {
 
 	//start decoding when buffer is filled
 	if (written_samples < ninput_items[0]) {
-		float pixel_data[NUM_PIXELS_IN_ROW] = {0};
+		float pixel_data[APT_IMG_WIDTH] = {0};
 		int retval = apt_decode(&d_apt, &d_signal_buffer, pixel_data);
 
 		if (retval != 0) {
-			buffer_fill(&d_image_buffer, NUM_PIXELS_IN_ROW, pixel_data);
+			buffer_fill(&d_image_buffer, APT_IMG_WIDTH, pixel_data);
 		}
 	}
         consume_each (written_samples);

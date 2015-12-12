@@ -23,8 +23,12 @@
 
 #include "filter.h"
 
-#define BLKAMP 256
-#define NUM_PIXELS_IN_ROW 2080
+#define APT_IMG_WIDTH 2080
+#define APT_SYNC_WIDTH 39
+#define APT_SPC_WIDTH 47
+#define APT_TELE_WIDTH 45
+#define APT_CHANNEL_WIDTH 909
+#define APT_CHANNEL_OFFSET (APT_SYNC_WIDTH + APT_SPC_WIDTH + APT_CHANNEL_WIDTH + APT_TELE_WIDTH)
 
 #include "buffer.h"
 
@@ -35,6 +39,7 @@ typedef struct {
 	float fr;
 } pll_t;
 
+#define BLKAMP 256
 typedef struct {
 	float ambuff[BLKAMP]; 
 	int nam; //current number of samples in ambuff
@@ -44,7 +49,7 @@ typedef struct {
 	pll_t phaselock_state; //state of the phaselock filter
 
 	//demodulated pixels left over from the last run
-	float leftover_pixels[NUM_PIXELS_IN_ROW];
+	float leftover_pixels[APT_IMG_WIDTH];
 	int num_leftover_pixels;
 	
 	//weird variables

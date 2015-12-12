@@ -45,7 +45,7 @@ namespace gr {
               gr::io_signature::make(1, 1, sizeof(float)),
               gr::io_signature::make(0, 0, 0))
     {
-      gr::block::set_output_multiple(NUM_PIXELS_IN_ROW);
+      gr::block::set_output_multiple(APT_IMG_WIDTH);
       imageViewer = new ImageViewer;
     }
 
@@ -63,9 +63,9 @@ namespace gr {
 	//generate cv::Mat from input data
 	float *img_data = new float[noutput_items]();
 	memcpy(img_data, in, sizeof(float)*noutput_items);
-	int num_rows = noutput_items/NUM_PIXELS_IN_ROW;
-	int displayed_elements = num_rows*NUM_PIXELS_IN_ROW;
-	cv::Mat rows(num_rows, NUM_PIXELS_IN_ROW, CV_32FC1, img_data);
+	int num_rows = noutput_items/APT_IMG_WIDTH;
+	int displayed_elements = num_rows*APT_IMG_WIDTH;
+	cv::Mat rows(num_rows, APT_IMG_WIDTH, CV_32FC1, img_data);
 	delete [] img_data;
 
 	//convert to RGB-format grayscale image
