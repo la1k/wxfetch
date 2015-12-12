@@ -81,7 +81,7 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 
-	int num_cols = 2150;
+	int num_cols = APT_IMG_WIDTH;
 
 	cv::Mat img(0, num_cols, CV_32FC1);
 
@@ -118,8 +118,10 @@ int main(int argc, char **argv)
 	sf_close(inwav);
 
 	delete [] pixel_data;
-	cv::imshow("test", img/255);
-	cv::waitKey();
+	//cv::imshow("test", img/255);
+	//cv::waitKey();
 
 	imwrite(output_filename, img);
+	imwrite("test_1.png", apt_image_channel(img, 0));
+	imwrite("test_2.png", apt_image_channel(img, 1));
 }

@@ -74,4 +74,15 @@ int apt_decode(apt_t *apt, buffer_t *sound_buffer, float *pixel_values);
  **/
 void apt_initialize(apt_t *apt);
 
+#include <opencv2/core/core.hpp>
+
+/**
+ * Get image corresponding to specified channel.
+ * 
+ * \param Raw APT image
+ * \param channel Image channel index (0 or 1)
+ * \return Image channel corresponding to the specified channel index
+ **/
+cv::Mat apt_image_channel(cv::Mat raw_image, int channel);
+
 #endif
