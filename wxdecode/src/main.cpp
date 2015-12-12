@@ -70,8 +70,16 @@ int getsample(float *sample, int nb)
 
 int main(int argc, char **argv)
 {
-	if (initsnd(argv[1]))
+	if (argc < 3) {
+		fprintf(stderr, "Usage: %s IN_SOUND_FILE OUT_IMAGE_FILE\n", argv[0]);
 		exit(1);
+	}
+
+	std::string sound_filename = string(argv[1]);
+	std::string output_filename = string(argv[2]);
+	if (initsnd(argv[1])) {
+		exit(1);
+	}
 
 	int num_cols = 2150;
 
@@ -105,7 +113,6 @@ int main(int argc, char **argv)
 		int consumed_samples = length - buffer_length(&sound_buffer);
 		if (consumed_samples > max_consumed_samples){
 			max_consumed_samples = consumed_samples;
-			cout << "Consumed samples: " << consumed_samples << endl;
 		}
 	}
 	sf_close(inwav);
@@ -114,5 +121,5 @@ int main(int argc, char **argv)
 	cv::imshow("test", img/255);
 	cv::waitKey();
 
-	imwrite("test.png", img);
+	imwrite(output_filename, img);
 }
