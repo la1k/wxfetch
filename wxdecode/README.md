@@ -5,7 +5,7 @@ The code has been changed in order to be able to run APT decoding on any input s
 wxdecode is primarily meant to aid the gnuradio module gr-apt in decoding an APT input stream, but can be used 
 as a standalone application like ATPDEC, or as a library for other applications. 
 
-For some kind of library API, see apt.h. Standalone executable is produced as wxdecode-bin, and can be run using ./wxdecode-bin soundfile.wav output_filename.png. Input file must be sampled at 11025 Hz.
+For some kind of library API, see `src/apt.h`. Standalone executable is produced as `wxdecode-bin`, and can be run using `./wxdecode-bin soundfile.wav output_filename.png`. Input file must be sampled at 11025 Hz.
 
 Build instructions:
 
