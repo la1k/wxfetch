@@ -1,3 +1,10 @@
+//=======================================================================================================
+// Copyright 2015 Asgeir Bjorgan
+// Distributed under the MIT License.
+// (See accompanying file LICENSE or copy at
+// http://opensource.org/licenses/MIT)
+//=======================================================================================================
+
 #include "buffer.h"
 #include <stdlib.h>
 #include <string.h>

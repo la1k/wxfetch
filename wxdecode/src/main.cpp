@@ -1,8 +1,7 @@
 /*
- *  Atpdec
+ *  wxdecode
+ *  Copyright (c) 2016 Asgeir Bjorgan (LA9SSA)
  *  Copyright (c) 2004-2005 by Thierry Leconte (F4DWV)
- *
- *      $Id: main.c,v 1.15 2005/05/20 23:01:24 f4dwv Exp $
  *
  *   This library is free software; you can redistribute it and/or modify
  *   it under the terms of the GNU Library General Public License as
@@ -102,9 +101,6 @@ int main(int argc, char **argv)
 		int retval = apt_decode(&apt, &sound_buffer, pixel_data);
 		if (retval != 0) {
 			img.push_back(cv::Mat(1, num_cols, CV_32FC1, pixel_data).clone());
-
-			cv::imshow("test", img/255);
-			cv::waitKey(5);
 		}
 		int consumed_samples = length - buffer_length(&sound_buffer);
 		if (consumed_samples > max_consumed_samples){

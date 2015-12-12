@@ -1,81 +1,19 @@
-wxdecode is based on ATPDEC version 1.7 (http://atpdec.sourceforge.net/). 
-Original README-file follows below:
+wxdecode is based on ATPDEC version 1.7 (http://atpdec.sourceforge.net/) (Thierry Leconte F4DWV (c) 2004-2005). 
 
-ATPDEC README (Thierry Leconte F4DWV (c) 2004-2005)
+The code has been changed in order to be able to run APT decoding on any input stream, not limited to a file read using libsndfile. 
 
-DESCRIPTION
+wxdecode is primarily meant to aid the gnuradio module gr-apt in decoding an APT input stream, but can be used 
+as a standalone application like ATPDEC, or as a library for other applications. 
 
-Atpdec is an open source program that decodes images transmitted by POES 
-NOAA weather satellite series.
-These satellites transmit continuously, among other things, medium 
-resolution images of the earth on 137Mhz.
-These transmissions could be easily received with an inexpensive antenna 
-and dedicated receiver.
-Output from such a receiver, is an audio signal that could be recorded 
-into a soundfile with any soundcard.
+For some kind of library API, see apt.h. Standalone executable is produced as wxdecode-bin, and can be run using ./wxdecode-bin soundfile.wav output_filename.png. Input file must be sampled at 11025 Hz.
 
-Atpdec will convert these sounfiles into .png images.
+Build instructions:
 
-For each soundfile up to 6 images could be generated :
+1. mkdir build
+2. cd build
+3. cmake ..
+4. make
 
-    1. Raw image : contains the 2 transmitted channel images + telemetry 
-and synchro pulses.
-    2. Calibrated channel A image
-    3. Calibrated channel B image
-    4. Temperature compensed I.R image
-    5. False color image
-
-Input soundfiles must be mono signal sampled at 11025 Hz.
-Atpdec use libsndfile to read soundfile, so any sound file format supported by libsndfile
-could be read.(Only tested with .wav file).
-
-COMPILATION
-
-Atpdec is written in plain standart C and must be very portable.
-It was only tested on Linux Fedora , but must work on any Unix platform.
-Just adapt the Makefile and type make (sorry no configure). 
-
-atpdec use libsndfile, libpng and libm.
-snd.h and png.h header must be present on your system.
-If they are not on standard path, edit the include path in the Makefile.
-
-USAGE
-
-atpdec [options] soundfiles ...
-
-OPTIONS
-
-	-i [r|a|b|c|t]
-	Toggle raw (r) , channel A (a) , channel B (b) , false color (c) ,
-	or temperature (t) output.
-	Default : "ac"
-
-	-d directory
-	Optional images destination directory.
-	Default : soundfile directory.
-
-	-s n
-	Satellite number 15 to 18 
-	Used for Temperature compensation.
-	Default :  NOAA15
-
-	-c conf_file
-	Use configuration file for false color generation.
-	Default : Internal parameters.
-
-OUTPUT
-
-Generated image are in png format, 8bits greyscale for raw and channel A|B images,
-24bits RVB for false color.
-
-Image names are soundfilename-x.png, where x is :
-        -r for raw images
-        -satellite instrument number (1,2,3A,3B,4,5) for channel A|B images
-        -c for false colors.
-
-EXAMPLE
-
-atpdec -d image -i ac *.wav
-
-Will process all .wav files in the current directory, generate only channel A and false color images and put them in the image directory.
-
+Requirements: 
+* libsndfile version >= 1.0.25 
+* OpenCV version >= 2.4

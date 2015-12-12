@@ -1,3 +1,23 @@
+/*
+ *  wxdecode
+ *  Copyright (c) 2016 Asgeir Bjorgan (LA9SSA)
+ *  Copyright (c) 2004-2005 by Thierry Leconte (F4DWV)
+ *
+ *   This library is free software; you can redistribute it and/or modify
+ *   it under the terms of the GNU Library General Public License as
+ *   published by the Free Software Foundation; either version 2 of
+ *   the License, or (at your option) any later version.
+ *
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU Library General Public License for more details.
+ *
+ *   You should have received a copy of the GNU Library General Public
+ *   License along with this library; if not, write to the Free Software
+ *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
+ */
 #ifndef DSP_H_DEFINED
 #define DSP_H_DEFINED
 
@@ -5,7 +25,6 @@
 
 #define BLKAMP 256
 #define NUM_PIXELS_IN_ROW 2080
-
 
 #include "buffer.h"
 
@@ -33,13 +52,12 @@ typedef struct {
 	double FreqLine;
 } apt_t;
 
-
 /**
- * Decode an APT signal into a pixel array.
+ * Decode an APT signal into a single row of pixels.
  * 
- * \param sound_buffer Recorded signal buffer
  * \param apt APT instance
- * \param pixel_values Output pixel values
+ * \param sound_buffer Recorded signal buffer, assumed samplerate 11025 Hz
+ * \param pixel_values Row of output pixel values, of length 2080
  * \return 1 if successful, 0 if not
  **/
 int apt_decode(apt_t *apt, buffer_t *sound_buffer, float *pixel_values);

@@ -1,8 +1,7 @@
 /*
- *  Atpdec 
- *  Copyright (c) 2004 by Thierry Leconte (F4DWV)
- *
- *      $Id: dsp.c,v 1.12 2004/04/24 07:19:48 f4dwv Exp $
+ *  wxdecode
+ *  Copyright (c) 2016 Asgeir Bjorgan (LA9SSA)
+ *  Copyright (c) 2004-2005 by Thierry Leconte (F4DWV)
  *
  *   This library is free software; you can redistribute it and/or modify
  *   it under the terms of the GNU Library General Public License as
